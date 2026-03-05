@@ -26,6 +26,62 @@ if st.button("Calculate"):
     st.subheader("Results")
     st.write(f"Vector: {vector_ng:.2f} ng ({vector_pmol:.4f} pmol)")
     st.write(f"Insert: {insert_ng:.2f} ng ({insert_pmol:.4f} pmol)")
+
+st.caption("ⓘ Calculation assumptions")
+
+with st.expander("ℹ️ How the ligation calculation works"):
+
+    st.markdown("""
+**Molar ratios**
+
+DNA ligation efficiency depends on the **molar ratio of vector to insert**, not their mass.  
+The calculator converts DNA mass (ng) into **moles** to maintain the correct ratio.
+
+---
+
+**Average molecular weight of dsDNA**
+
+1 base pair (bp) of double-stranded DNA has an average molecular weight of:
+
+**≈ 650–660 g/mol per bp**
+
+This calculator uses **650 g/mol per bp**.
+
+---
+
+**Converting DNA mass to pmol**
+
+The conversion used is:
+
+pmol = (ng × 1000) / (bp × 650)
+
+Where:
+
+- **ng × 1000** converts nanograms → picograms
+- **bp × 650** gives the molecular weight of the DNA fragment
+
+---
+
+**Vector and insert mass distribution**
+
+The total DNA amount is distributed between vector and insert according to:
+
+vector_ng = total_ng / (1 + ratio × insert_bp / vector_bp)
+
+The insert mass is:
+
+insert_ng = total_ng − vector_ng
+
+---
+
+**Typical ligation ratios**
+
+Common molar ratios used in cloning:
+
+- **1 : 3** → sticky-end ligations
+- **1 : 4–6** → blunt-end ligations
+- **1 : 1** → large fragment ligations
+""")
     
 st.markdown("---")
 st.header("dsDNA Copy Number Calculator")
@@ -50,3 +106,61 @@ if st.button("Calculate Copy Number"):
     st.write(f"Moles: {moles:.2e} mol")
     st.write(f"pmol: {pmol:.4f}")
     st.write(f"DNA Copies: {copies:.2e}")
+
+st.caption("ⓘ Calculation assumptions")
+
+with st.expander("ℹ️ How DNA copy number is calculated"):
+
+    st.markdown("""
+**Average molecular weight of dsDNA**
+
+1 base pair (bp) of double-stranded DNA has an average molecular weight of:
+
+**≈ 650–660 g/mol**
+
+This calculator assumes **650 g/mol per base pair**.
+
+---
+
+**Molar mass of a DNA molecule**
+
+Molar mass is calculated as:
+
+Molar mass = bp × 650 g/mol
+
+Example:
+
+A **4 kb plasmid**
+
+= 4000 bp × 650  
+= **2.6 × 10⁶ g/mol**
+
+---
+
+**Converting DNA mass to moles**
+
+DNA mass is first converted from **ng to grams**:
+
+moles = (DNA mass in g) / molar mass
+
+---
+
+**Calculating number of DNA molecules**
+
+The number of molecules is determined using **Avogadro's constant**:
+
+6.022 × 10²³ molecules/mol
+
+copies = moles × 6.022 × 10²³
+
+---
+
+**Example**
+
+50 ng of a 4 kb plasmid:
+
+Molar mass = 2.6 × 10⁶ g/mol  
+Moles ≈ 1.9 × 10⁻¹⁴ mol  
+
+DNA copies ≈ **1.1 × 10¹⁰ molecules**
+""")

@@ -2,10 +2,10 @@ import streamlit as st
 
 st.title("DNA Cloning Calculator")
 
-vector_kb = st.number_input("Vector size (kb)", min_value=0.0)
-insert_kb = st.number_input("Insert size (kb)", min_value=0.0)
+vector_kb = st.number_input("Vector DNA size (kb)", min_value=0.0)
+insert_kb = st.number_input("Insert DNA size (kb)", min_value=0.0)
 ratio = st.text_input("Vector : Insert ratio", "1:4")
-total_ng = st.number_input("Total DNA (in ng): recommended for ligation", value=100.0)
+total_ng = st.number_input("Total DNA (in ng): 100 ng is recommended for ligation", value=100.0)
 
 if st.button("Calculate"):
 

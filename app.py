@@ -5,30 +5,22 @@ st.set_page_config(
     page_icon="🧬",
 )
 
-st.markdown("""
+st.markdown(
+"""
 <div style="
-background: linear-gradient(90deg,#1f77b4,#2ca02c);
-padding:12px;
+background: linear-gradient(90deg,#2C3E50,#4CA1AF);
+padding:14px;
 border-radius:8px;
 display:flex;
 align-items:center;
 gap:12px;
 color:white;
+box-shadow:0px 2px 6px rgba(0,0,0,0.2);
 ">
 
-<svg width="40" height="40" viewBox="0 0 100 100">
-<path d="M20 10 C80 20 20 40 80 50 C20 60 80 80 20 90"
-stroke="white" stroke-width="4" fill="none">
-<animate attributeName="stroke-dashoffset"
-values="0;200" dur="3s" repeatCount="indefinite"/>
-</path>
-
-<path d="M80 10 C20 20 80 40 20 50 C80 60 20 80 80 90"
-stroke="white" stroke-width="4" fill="none">
-<animate attributeName="stroke-dashoffset"
-values="200;0" dur="3s" repeatCount="indefinite"/>
-</path>
-</svg>
+<div style="font-size:32px;">
+🧬
+</div>
 
 <div>
 <div style="font-size:18px;font-weight:600;">
@@ -41,18 +33,9 @@ Njue BioTools
 </div>
 
 </div>
-""", unsafe_allow_html=True)
-
-import streamlit as st
-
-col1, col2 = st.columns([1,6])
-
-with col1:
-    st.markdown("## 🧬")
-
-with col2:
-    st.markdown("### DNA Cloning Calculator")
-    st.caption("Njue BioTools")
+""",
+unsafe_allow_html=True
+)
 
     
 import streamlit as st

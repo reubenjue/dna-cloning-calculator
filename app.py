@@ -82,7 +82,7 @@ st.markdown("---")
 
 
 # ============================================
-# DNA CLONING CALCULATOR
+# 5. DNA CLONING CALCULATOR
 # ============================================
 
 if st.session_state.page == "cloning":
@@ -141,7 +141,7 @@ pmol = (ng × 1000) / (bp × 650)
 
 
 # ============================================
-# DNA COPY NUMBER CALCULATOR
+# 6. DNA COPY NUMBER CALCULATOR
 # ============================================
 
 elif st.session_state.page == "copy":
@@ -183,7 +183,7 @@ Copies are calculated using **Avogadro's number**:
 
 
 # ============================================
-# DNA / RNA MASS CONVERSION
+# 7. DNA / RNA MASS CONVERSION
 # ============================================
 
 elif st.session_state.page == "conversion":
@@ -252,7 +252,7 @@ elif st.session_state.page == "conversion":
     st.write("Enter a value in any field to convert automatically.")
 
 # ============================================
-# DNA SEQUENCE MASS CALCULATOR
+# 8. DNA SEQUENCE MASS CALCULATOR
 # ============================================
 
 elif st.session_state.page == "sequence":
@@ -318,7 +318,7 @@ elif st.session_state.page == "sequence":
 
 
 # ============================================
-# FOOTER
+# 9. FOOTER
 # ============================================
 
 st.markdown("---")

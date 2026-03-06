@@ -265,7 +265,7 @@ elif st.session_state.page == "sequence":
     )
 
     sequence = st.text_area(
-        "Paste DNA sequence",
+        "Paste DNA sequence (A, T, G, C only)",
         height=150
     )
 
@@ -275,9 +275,46 @@ elif st.session_state.page == "sequence":
         value=0.0
     )
 
-# ============================================
-# DNA SEQUENCE MASS CALCULATOR
-# ============================================
+    if sequence:
+
+        # clean sequence
+        seq = sequence.upper().replace("\n","").replace(" ","")
+
+        # validate bases
+        valid_bases = set("ATGC")
+
+        if not set(seq).issubset(valid_bases):
+
+            st.error("Invalid input: sequence must contain only A, T, G, C bases.")
+
+        else:
+
+            length = len(seq)
+
+            if seq_type == "dsDNA":
+                mw_per_bp = 650
+            else:
+                mw_per_bp = 330
+
+            mol_weight = length * mw_per_bp
+
+            st.subheader("Sequence Properties")
+
+            st.write(f"Length: **{length} bp**")
+            st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
+
+            pmol_per_ng = (1e-9 / mol_weight) * 1e12
+
+            st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
+
+            if mass_ng > 0:
+
+                moles = (mass_ng * 1e-9) / mol_weight
+                pmol = moles * 1e12
+
+                st.subheader("Mass Conversion")
+
+                st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
 
 
 # ============================================

@@ -1,12 +1,12 @@
 # ============================================
-# 1. IMPORT LIBRARIES
+# IMPORT LIBRARIES
 # ============================================
 
 import streamlit as st
 
 
 # ============================================
-# 2. PAGE CONFIG
+# PAGE CONFIG
 # ============================================
 
 st.set_page_config(
@@ -17,7 +17,32 @@ st.set_page_config(
 
 
 # ============================================
-# 3. HEADER
+# GLOBAL STYLE
+# ============================================
+
+st.markdown("""
+<style>
+
+div.stButton > button {
+    height:70px;
+    font-size:18px;
+    font-weight:600;
+    border-radius:10px;
+    border:1px solid #cfd8dc;
+    box-shadow: 0px 4px 6px rgba(0,0,0,0.15);
+    transition: all 0.2s ease-in-out;
+}
+
+div.stButton > button:hover {
+    transform: translateY(-2px);
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================
+# HEADER
 # ============================================
 
 st.markdown(
@@ -40,7 +65,7 @@ box-shadow:0px 2px 6px rgba(0,0,0,0.2);
 DNA Cloning Calculator
 </div>
 
-<div style="font-size:13px;opacity:0.9;">
+<div style="font-size:13px;">
 Njue BioTools
 </div>
 </div>
@@ -54,34 +79,29 @@ st.write("")
 
 
 # ============================================
-# 4. NAVIGATION CARDS
+# NAVIGATION
 # ============================================
 
 if "page" not in st.session_state:
     st.session_state.page = "cloning"
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    if st.button(
-        "🧬\nDNA Cloning\nCalculator",
-        use_container_width=True
-    ):
+    if st.button("🧬 DNA Cloning", use_container_width=True):
         st.session_state.page = "cloning"
 
 with col2:
-    if st.button(
-        "🔢\nDNA Copy\nNumber",
-        use_container_width=True
-    ):
+    if st.button("🔢 Copy Number", use_container_width=True):
         st.session_state.page = "copy"
 
 with col3:
-    if st.button(
-        "⚖\nDNA/RNA Mass\nConverter",
-        use_container_width=True
-    ):
+    if st.button("⚖ Mass Converter", use_container_width=True):
         st.session_state.page = "conversion"
+
+with col4:
+    if st.button("🧾 Sequence Mass", use_container_width=True):
+        st.session_state.page = "sequence"
 
 st.markdown("---")
 
@@ -128,25 +148,9 @@ Blunt end ligations: **1 : 4 – 6**
 Large fragment ligations: **1 : 1**
 """)
 
-    st.caption("ⓘ Calculation assumptions")
-
-    with st.expander("How the ligation calculation works"):
-
-        st.markdown("""
-DNA ligation efficiency depends on **molar ratios** rather than mass.
-
-Average molecular weight of dsDNA:
-
-**650–660 g/mol per bp**
-
-Conversion used:
-
-pmol = (ng × 1000) / (bp × 650)
-""")
-
 
 # ============================================
-# DNA COPY NUMBER CALCULATOR
+# COPY NUMBER CALCULATOR
 # ============================================
 
 elif st.session_state.page == "copy":
@@ -172,35 +176,17 @@ elif st.session_state.page == "copy":
         st.write(f"pmol: {pmol:.4f}")
         st.write(f"DNA Copies: {copies:.2e}")
 
-    st.caption("ⓘ Calculation assumptions")
-
-    with st.expander("How DNA copy number is calculated"):
-
-        st.markdown("""
-Average molecular weight:
-
-**650 g/mol per base pair**
-
-Copies are calculated using **Avogadro's number**:
-
-6.022 × 10²³ molecules/mol
-""")
-
 
 # ============================================
-# DNA / RNA MASS CONVERSION
+# MASS CONVERTER
 # ============================================
 
 elif st.session_state.page == "conversion":
 
     st.markdown("### DNA/RNA Mass Unit Converter")
 
-    na_type = st.selectbox(
-        "Molecule type",
-        ["dsDNA", "ssDNA", "RNA"]
-    )
+    na_type = st.selectbox("Molecule type", ["dsDNA", "ssDNA", "RNA"])
 
-    # initialize session values
     for key in ["g","mg","ug","ng","pg"]:
         if key not in st.session_state:
             st.session_state[key] = 0.0
@@ -255,9 +241,76 @@ elif st.session_state.page == "conversion":
     col5.number_input("pg", key="pg", on_change=convert_from_pg)
 
     st.write("Enter a value in any field to convert automatically.")
+
+
+# ============================================
+# DNA SEQUENCE MASS CALCULATOR
+# ============================================
+
+elif st.session_state.page == "sequence":
+
+    st.markdown("### DNA Sequence Mass Calculator")
+
+    seq_type = st.selectbox(
+        "Sequence Type",
+        ["dsDNA", "ssDNA"]
+    )
+
+    sequence = st.text_area(
+        "Paste DNA sequence (A, T, G, C only)",
+        height=150
+    )
+
+    mass_ng = st.number_input(
+        "Optional: DNA amount (ng)",
+        min_value=0.0,
+        value=0.0
+    )
+
+    if sequence:
+
+        # clean sequence
+        seq = sequence.upper().replace("\n","").replace(" ","")
+
+        # validate bases
+        valid_bases = set("ATGC")
+
+        if not set(seq).issubset(valid_bases):
+
+            st.error("Invalid input: sequence must contain only A, T, G, C bases.")
+
+        else:
+
+            length = len(seq)
+
+            if seq_type == "dsDNA":
+                mw_per_bp = 650
+            else:
+                mw_per_bp = 330
+
+            mol_weight = length * mw_per_bp
+
+            st.subheader("Sequence Properties")
+
+            st.write(f"Length: **{length} bp**")
+            st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
+
+            pmol_per_ng = (1e-9 / mol_weight) * 1e12
+
+            st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
+
+            if mass_ng > 0:
+
+                moles = (mass_ng * 1e-9) / mol_weight
+                pmol = moles * 1e12
+
+                st.subheader("Mass Conversion")
+
+                st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
 # ============================================
 # FOOTER
 # ============================================
 
 st.markdown("---")
 st.caption("🧬 Njue BioTools • Molecular Biology Utilities")
+

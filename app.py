@@ -99,8 +99,12 @@ Common molar ratios used in cloning:
 - **1 : 1** → large fragment ligations
 """)
     
-st.markdown("---")
-st.header("dsDNA Copy Number Calculator")
+st.markdown(
+"""
+<h4 style='margin-bottom:5px;'>dsDNA Copy Number Calculator</h4>
+""",
+unsafe_allow_html=True
+)
 
 dna_kb = st.number_input("DNA length (kb)", min_value=0.0, key="dna_kb")
 dna_ng = st.number_input("DNA amount (ng)", min_value=0.0, key="dna_ng")

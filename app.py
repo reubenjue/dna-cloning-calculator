@@ -200,47 +200,61 @@ elif st.session_state.page == "conversion":
         ["dsDNA", "ssDNA", "RNA"]
     )
 
+    # initialize session values
+    for key in ["g","mg","ug","ng","pg"]:
+        if key not in st.session_state:
+            st.session_state[key] = 0.0
+
+
+    def convert_from_g():
+        g = st.session_state.g
+        st.session_state.mg = g * 1e3
+        st.session_state.ug = g * 1e6
+        st.session_state.ng = g * 1e9
+        st.session_state.pg = g * 1e12
+
+
+    def convert_from_mg():
+        mg = st.session_state.mg
+        st.session_state.g = mg / 1e3
+        st.session_state.ug = mg * 1e3
+        st.session_state.ng = mg * 1e6
+        st.session_state.pg = mg * 1e9
+
+
+    def convert_from_ug():
+        ug = st.session_state.ug
+        st.session_state.g = ug / 1e6
+        st.session_state.mg = ug / 1e3
+        st.session_state.ng = ug * 1e3
+        st.session_state.pg = ug * 1e6
+
+
+    def convert_from_ng():
+        ng = st.session_state.ng
+        st.session_state.g = ng / 1e9
+        st.session_state.mg = ng / 1e6
+        st.session_state.ug = ng / 1e3
+        st.session_state.pg = ng * 1e3
+
+
+    def convert_from_pg():
+        pg = st.session_state.pg
+        st.session_state.g = pg / 1e12
+        st.session_state.mg = pg / 1e9
+        st.session_state.ug = pg / 1e6
+        st.session_state.ng = pg / 1e3
+
+
     col1, col2, col3, col4, col5 = st.columns(5)
 
-    g = col1.number_input("g", value=0.0)
-    mg = col2.number_input("mg", value=0.0)
-    ug = col3.number_input("µg", value=0.0)
-    ng = col4.number_input("ng", value=0.0)
-    pg = col5.number_input("pg", value=0.0)
+    col1.number_input("g", key="g", on_change=convert_from_g)
+    col2.number_input("mg", key="mg", on_change=convert_from_mg)
+    col3.number_input("µg", key="ug", on_change=convert_from_ug)
+    col4.number_input("ng", key="ng", on_change=convert_from_ng)
+    col5.number_input("pg", key="pg", on_change=convert_from_pg)
 
-    if g > 0:
-        mg = g * 1e3
-        ug = g * 1e6
-        ng = g * 1e9
-        pg = g * 1e12
-
-    elif mg > 0:
-        g = mg / 1e3
-        ug = mg * 1e3
-        ng = mg * 1e6
-        pg = mg * 1e9
-
-    elif ug > 0:
-        g = ug / 1e6
-        mg = ug / 1e3
-        ng = ug * 1e3
-        pg = ug * 1e6
-
-    elif ng > 0:
-        g = ng / 1e9
-        mg = ng / 1e6
-        ug = ng / 1e3
-        pg = ng * 1e3
-
-    elif pg > 0:
-        g = pg / 1e12
-        mg = pg / 1e9
-        ug = pg / 1e6
-        ng = pg / 1e3
-
-    st.write("Converted values updated automatically.")
-
-
+    st.write("Enter a value in any field to convert automatically.")
 # ============================================
 # FOOTER
 # ============================================

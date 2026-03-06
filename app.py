@@ -298,46 +298,52 @@ elif st.session_state.page == "sequence":
         value=0.0
     )
 
-    if sequence:
-
+if sequence:
         # clean sequence
-        seq = sequence.upper().replace("\n","").replace(" ","")
+seq = sequence.upper().replace("\n","").replace(" ","")
 
-        # validate bases
-        valid_bases = set("ATGC")
+# allowed bases
+valid_bases = {"A","T","G","C"}
 
-        if not set(seq).issubset(valid_bases):
+# check for invalid characters
+invalid = [base for base in seq if base not in valid_bases]
 
-            st.error("Invalid input: sequence must contain only A, T, G, C bases.")
+if invalid:
 
-        else:
+    st.error(
+        f"Invalid input detected. Only A, T, G, C are allowed.\n"
+        f"Invalid characters found: {', '.join(sorted(set(invalid)))}"
+    )
 
-            length = len(seq)
+else:
 
-            if seq_type == "dsDNA":
-                mw_per_bp = 650
-            else:
-                mw_per_bp = 330
+    length = len(seq)
 
-            mol_weight = length * mw_per_bp
+    if seq_type == "dsDNA":
+        mw_per_bp = 650
+    else:
+        mw_per_bp = 330
 
-            st.subheader("Sequence Properties")
+    mol_weight = length * mw_per_bp
 
-            st.write(f"Length: **{length} bp**")
-            st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
+    st.subheader("Sequence Properties")
 
-            pmol_per_ng = (1e-9 / mol_weight) * 1e12
+    st.write(f"Length: **{length} bp**")
+    st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
 
-            st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
+    pmol_per_ng = (1e-9 / mol_weight) * 1e12
 
-            if mass_ng > 0:
+    st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
 
-                moles = (mass_ng * 1e-9) / mol_weight
-                pmol = moles * 1e12
+    if mass_ng > 0:
 
-                st.subheader("Mass Conversion")
+        moles = (mass_ng * 1e-9) / mol_weight
+        pmol = moles * 1e12
 
-                st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
+        st.subheader("Mass Conversion")
+
+        st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
+
 # ============================================
 # FOOTER
 # ============================================

@@ -91,8 +91,8 @@ if st.session_state.page == "cloning":
 
     vector_kb = st.number_input("Vector DNA size (kb)", min_value=0.0)
     insert_kb = st.number_input("Insert DNA size (kb)", min_value=0.0)
-    ratio = st.text_input("Vector : Insert ratio", "1:4")
-    total_ng = st.number_input("Total DNA (ng)", value=100.0)
+    ratio = st.text_input("Vector : Insert ratio; adjust accordingly", "1:4")
+    total_ng = st.number_input("Total DNA (ng); adjust accordingly", value=100.0)
 
     if st.button("Calculate Cloning Mix"):
 

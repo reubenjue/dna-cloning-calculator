@@ -175,3 +175,6 @@ Moles ≈ 1.9 × 10⁻¹⁴ mol
 
 DNA copies ≈ **1.1 × 10¹⁰ molecules**
 """)
+
+st.markdown("---")
+st.caption("🧬 Njue BioTools • Molecular Biology Utilities")

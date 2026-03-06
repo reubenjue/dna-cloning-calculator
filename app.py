@@ -22,7 +22,7 @@ unsafe_allow_html=True
 vector_kb = st.number_input("Vector DNA size (kb)", min_value=0.0)
 insert_kb = st.number_input("Insert DNA size (kb)", min_value=0.0)
 ratio = st.text_input("Vector : Insert ratio; You can adjust", "1:4")
-total_ng = st.number_input("Total DNA (in ng); 100 ng is recommended for ligation, but user can adjust accordingly", value=100.0)
+total_ng = st.number_input("Total DNA (in ng) e.g. 100 ng, user adjust accordingly", value=100.0)
 
 if st.button("Calculate"):
 

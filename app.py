@@ -1,13 +1,40 @@
 import streamlit as st
 
-col1, col2 = st.columns([1,6])
+st.set_page_config(
+    page_title="DNA Cloning Calculator | Njue BioTools",
+    page_icon="🧬",
+)
 
-with col1:
-    st.markdown("## 🧬")
+st.markdown("""
+<div style="display:flex;align-items:center;gap:12px;">
 
-with col2:
-    st.markdown("### DNA Cloning Calculator")
-    st.caption("Njue BioTools")
+<svg width="45" height="45" viewBox="0 0 100 100">
+    
+<path d="M20 10 C80 20 20 40 80 50 C20 60 80 80 20 90"
+stroke="#1f77b4" stroke-width="4" fill="none">
+<animate attributeName="stroke-dashoffset"
+values="0;200" dur="3s" repeatCount="indefinite"/>
+</path>
+
+<path d="M80 10 C20 20 80 40 20 50 C80 60 20 80 80 90"
+stroke="#d62728" stroke-width="4" fill="none">
+<animate attributeName="stroke-dashoffset"
+values="200;0" dur="3s" repeatCount="indefinite"/>
+</path>
+
+</svg>
+
+<div>
+<h4 style="margin-bottom:0;">DNA Cloning Calculator</h4>
+<p style="margin-top:0;font-size:13px;color:gray;">
+Njue BioTools
+</p>
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+
+
     
 import streamlit as st
 

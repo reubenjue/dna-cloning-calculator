@@ -278,37 +278,52 @@ elif st.session_state.page == "sequence":
     if sequence:
 
         # clean sequence
-        seq = sequence.upper().replace("\n", "").replace(" ", "")
+        seq = sequence.upper().replace("\n","").replace(" ","")
 
-        length = len(seq)
+        # allowed bases
+        valid_bases = {"A","T","G","C"}
+        # check for invalid characters
+        invalid = [base for base in seq if base not in valid_bases]
 
-        if seq_type == "dsDNA":
-            mw_per_bp = 650
-        else:
-            mw_per_bp = 330
+if invalid:
 
-        mol_weight = length * mw_per_bp
+    st.error(
+        f"Invalid input detected. Only A, T, G, C are allowed.\n"
+        f"Invalid characters found: {', '.join(sorted(set(invalid)))}"
+    )
 
-        st.subheader("Sequence Properties")
+else:
 
-        st.write(f"Length: **{length} bp**")
-        st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
+    length = len(seq)
 
-        pmol_per_ng = (1e-9 / mol_weight) * 1e12
+    if seq_type == "dsDNA":
+        mw_per_bp = 650
+    else:
+        mw_per_bp = 330
 
-        st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
+    mol_weight = length * mw_per_bp
 
-        if mass_ng > 0:
+    st.subheader("Sequence Properties")
 
-            moles = (mass_ng * 1e-9) / mol_weight
-            pmol = moles * 1e12
+    st.write(f"Length: **{length} bp**")
+    st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
 
-            st.subheader("Mass Conversion")
+    pmol_per_ng = (1e-9 / mol_weight) * 1e12
 
-            st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
+    st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
+
+    if mass_ng > 0:
+
+        moles = (mass_ng * 1e-9) / mol_weight
+        pmol = moles * 1e12
+
+        st.subheader("Mass Conversion")
+
+        st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
 # ============================================
 # FOOTER
 # ============================================
 
 st.markdown("---")
 st.caption("🧬 Njue BioTools • Molecular Biology Utilities")
+

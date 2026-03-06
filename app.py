@@ -278,71 +278,7 @@ elif st.session_state.page == "sequence":
 # ============================================
 # DNA SEQUENCE MASS CALCULATOR
 # ============================================
-elif st.session_state.page == "sequence":
 
-    st.markdown("### DNA Sequence Mass Calculator")
-
-    seq_type = st.selectbox(
-        "Sequence Type",
-        ["dsDNA", "ssDNA"]
-    )
-
-    sequence = st.text_area(
-        "Paste DNA sequence (A, T, G, C only)",
-        height=150
-    )
-
-    mass_ng = st.number_input(
-        "Optional: DNA amount (ng)",
-        min_value=0.0,
-        value=0.0
-    )
-
-if sequence:
-        # clean sequence
-seq = sequence.upper().replace("\n","").replace(" ","")
-
-# allowed bases
-valid_bases = {"A","T","G","C"}
-
-# check for invalid characters
-invalid = [base for base in seq if base not in valid_bases]
-
-if invalid:
-
-    st.error(
-        f"Invalid input detected. Only A, T, G, C are allowed.\n"
-        f"Invalid characters found: {', '.join(sorted(set(invalid)))}"
-    )
-
-else:
-
-    length = len(seq)
-
-    if seq_type == "dsDNA":
-        mw_per_bp = 650
-    else:
-        mw_per_bp = 330
-
-    mol_weight = length * mw_per_bp
-
-    st.subheader("Sequence Properties")
-
-    st.write(f"Length: **{length} bp**")
-    st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
-
-    pmol_per_ng = (1e-9 / mol_weight) * 1e12
-
-    st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
-
-    if mass_ng > 0:
-
-        moles = (mass_ng * 1e-9) / mol_weight
-        pmol = moles * 1e12
-
-        st.subheader("Mass Conversion")
-
-        st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
 
 # ============================================
 # FOOTER

@@ -43,6 +43,30 @@ if st.button("Calculate"):
     st.subheader("Results")
     st.write(f"Vector: {vector_ng:.2f} ng ({vector_pmol:.4f} pmol)")
     st.write(f"Insert: {insert_ng:.2f} ng ({insert_pmol:.4f} pmol)")
+    
+
+st.markdown(
+"""
+<div style="
+font-size:13px;
+background-color:#f6f8fa;
+padding:10px;
+border-radius:6px;
+border-left:4px solid #4CAF50;
+">
+
+<b>Typical ligation ratios</b><br>
+
+Sticky end ligations: <b>1 : 3</b><br>
+Blunt end ligations: <b>1 : 4 – 6</b><br>
+Large fragments: <b>1 : 1</b>
+
+</div>
+""",
+unsafe_allow_html=True
+)
+
+
 
 st.caption("ⓘ Calculation assumptions")
 

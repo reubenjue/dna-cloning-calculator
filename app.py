@@ -60,28 +60,23 @@ st.write("")
 if "page" not in st.session_state:
     st.session_state.page = "cloning"
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    if st.button(
-        "🧬\nDNA Cloning\nCalculator",
-        use_container_width=True
-    ):
+    if st.button("🧬 DNA Cloning", use_container_width=True):
         st.session_state.page = "cloning"
 
 with col2:
-    if st.button(
-        "🔢\nDNA Copy\nNumber",
-        use_container_width=True
-    ):
+    if st.button("🔢 Copy Number", use_container_width=True):
         st.session_state.page = "copy"
 
 with col3:
-    if st.button(
-        "⚖\nDNA/RNA Mass\nConverter",
-        use_container_width=True
-    ):
+    if st.button("⚖ Mass Converter", use_container_width=True):
         st.session_state.page = "conversion"
+
+with col4:
+    if st.button("🧾 Sequence Mass", use_container_width=True):
+        st.session_state.page = "sequence"
 
 st.markdown("---")
 
@@ -255,6 +250,62 @@ elif st.session_state.page == "conversion":
     col5.number_input("pg", key="pg", on_change=convert_from_pg)
 
     st.write("Enter a value in any field to convert automatically.")
+
+# ============================================
+# DNA SEQUENCE MASS CALCULATOR
+# ============================================
+
+elif st.session_state.page == "sequence":
+
+    st.markdown("### DNA Sequence Mass Calculator")
+
+    seq_type = st.selectbox(
+        "Sequence Type",
+        ["dsDNA", "ssDNA"]
+    )
+
+    sequence = st.text_area(
+        "Paste DNA sequence",
+        height=150
+    )
+
+    mass_ng = st.number_input(
+        "Optional: DNA amount (ng)",
+        min_value=0.0,
+        value=0.0
+    )
+
+    if sequence:
+
+        # clean sequence
+        seq = sequence.upper().replace("\n", "").replace(" ", "")
+
+        length = len(seq)
+
+        if seq_type == "dsDNA":
+            mw_per_bp = 650
+        else:
+            mw_per_bp = 330
+
+        mol_weight = length * mw_per_bp
+
+        st.subheader("Sequence Properties")
+
+        st.write(f"Length: **{length} bp**")
+        st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
+
+        pmol_per_ng = (1e-9 / mol_weight) * 1e12
+
+        st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
+
+        if mass_ng > 0:
+
+            moles = (mass_ng * 1e-9) / mol_weight
+            pmol = moles * 1e12
+
+            st.subheader("Mass Conversion")
+
+            st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
 # ============================================
 # FOOTER
 # ============================================

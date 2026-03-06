@@ -41,7 +41,7 @@ DNA Cloning Calculator
 </div>
 
 <div style="font-size:13px;opacity:0.9;">
-Njue BioTools
+RNMolBioTools
 </div>
 </div>
 
@@ -322,5 +322,5 @@ elif st.session_state.page == "sequence":
 # ============================================
 
 st.markdown("---")
-st.caption("🧬 Njue BioTools • Molecular Biology Utilities")
+st.caption("🧬 RNMolBioTools • Molecular Biology Utilities")
 

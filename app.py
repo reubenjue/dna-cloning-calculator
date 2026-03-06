@@ -1,5 +1,50 @@
 import streamlit as st
 
+st.set_page_config(
+    page_title="DNA Cloning Calculator | Njue BioTools",
+    page_icon="🧬",
+)
+
+st.markdown("""
+<div style="
+background: linear-gradient(90deg,#1f77b4,#2ca02c);
+padding:12px;
+border-radius:8px;
+display:flex;
+align-items:center;
+gap:12px;
+color:white;
+">
+
+<svg width="40" height="40" viewBox="0 0 100 100">
+<path d="M20 10 C80 20 20 40 80 50 C20 60 80 80 20 90"
+stroke="white" stroke-width="4" fill="none">
+<animate attributeName="stroke-dashoffset"
+values="0;200" dur="3s" repeatCount="indefinite"/>
+</path>
+
+<path d="M80 10 C20 20 80 40 20 50 C80 60 20 80 80 90"
+stroke="white" stroke-width="4" fill="none">
+<animate attributeName="stroke-dashoffset"
+values="200;0" dur="3s" repeatCount="indefinite"/>
+</path>
+</svg>
+
+<div>
+<div style="font-size:18px;font-weight:600;">
+DNA Cloning Calculator
+</div>
+
+<div style="font-size:13px;opacity:0.85;">
+Njue BioTools
+</div>
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+
+import streamlit as st
+
 col1, col2 = st.columns([1,6])
 
 with col1:

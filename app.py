@@ -1,4 +1,13 @@
+# --------------------------------------------
+# 1. IMPORT LIBRARIES
+# --------------------------------------------
+
 import streamlit as st
+
+
+# --------------------------------------------
+# 2. PAGE CONFIGURATION
+# --------------------------------------------
 
 st.set_page_config(
     page_title="DNA Cloning Calculator | Njue BioTools",
@@ -37,8 +46,51 @@ Njue BioTools
 unsafe_allow_html=True
 )
 
-    
+
+# --------------------------------------------
+# 3. HEADER (Njue BioTools styled background)
+# --------------------------------------------
+
+st.markdown("your styled header code here", unsafe_allow_html=True)
+
+
+# --------------------------------------------
+# 4. NAVIGATION BUTTONS  ← PLACE CODE HERE
+# --------------------------------------------
+
+if "page" not in st.session_state:
+    st.session_state.page = "cloning"
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button("🧬 DNA Cloning Calculator", use_container_width=True):
+        st.session_state.page = "cloning"
+
+with col2:
+    if st.button("🔢 DNA Copy Number", use_container_width=True):
+        st.session_state.page = "copy"
+
+with col3:
+    if st.button("⚖ DNA/RNA Mass Converter", use_container_width=True):
+        st.session_state.page = "conversion"
+
+st.markdown("---")
+
+
+# --------------------------------------------
+# 5. SHOW SELECTED CALCULATOR
+# --------------------------------------------
+
+if st.session_state.page == "cloning":
+
+    st.markdown("#### DNA Cloning Calculator")
+
 import streamlit as st
+
+# --------------------------------------------
+# DNA Cloning Calculator
+# --------------------------------------------
 
 st.markdown(
 """
@@ -81,7 +133,9 @@ Blunt end ligations: **1 : 4 – 6**
 Large fragment ligations: **1 : 1**
 """)
 
-
+# --------------------------------------------
+# DNA Cloning Calculator info
+# --------------------------------------------
 
 st.caption("ⓘ Calculation assumptions")
 
@@ -139,6 +193,14 @@ Common molar ratios used in cloning:
 - **1 : 1** → large fragment ligations
 """)
     
+# --------------------------------------------
+# dsDNA Copy Number Calculator 
+# --------------------------------------------
+
+elif st.session_state.page == "copy":
+
+    st.markdown("#### dsDNA Copy Number Calculator")
+
 st.markdown(
 """
 <h4 style='margin-bottom:5px;'>dsDNA Copy Number Calculator</h4>
@@ -166,6 +228,10 @@ if st.button("Calculate Copy Number"):
     st.write(f"Moles: {moles:.2e} mol")
     st.write(f"pmol: {pmol:.4f}")
     st.write(f"DNA Copies: {copies:.2e}")
+    
+# --------------------------------------------
+# DNA Copy number calculation info
+# --------------------------------------------
 
 st.caption("ⓘ Calculation assumptions")
 
@@ -225,5 +291,62 @@ Moles ≈ 1.9 × 10⁻¹⁴ mol
 DNA copies ≈ **1.1 × 10¹⁰ molecules**
 """)
 
+# --------------------------------------------
+# DNA/RNA Mass Conversion Calculator
+# --------------------------------------------
+
+elif st.session_state.page == "conversion":
+
+    st.markdown("#### DNA/RNA Mass Conversion Tool")
+
+st.markdown("---")
+st.markdown("#### DNA/RNA Mass Unit Converter")
+
+na_type = st.selectbox(
+    "Molecule type",
+    ["dsDNA", "ssDNA", "RNA"]
+)
+
+col1, col2, col3, col4, col5 = st.columns(5)
+
+g = col1.number_input("g", value=0.0)
+mg = col2.number_input("mg", value=0.0)
+ug = col3.number_input("µg", value=0.0)
+ng = col4.number_input("ng", value=0.0)
+pg = col5.number_input("pg", value=0.0)
+
+# determine which field user changed
+if g > 0:
+    mg = g * 1e3
+    ug = g * 1e6
+    ng = g * 1e9
+    pg = g * 1e12
+
+elif mg > 0:
+    g = mg / 1e3
+    ug = mg * 1e3
+    ng = mg * 1e6
+    pg = mg * 1e9
+
+elif ug > 0:
+    g = ug / 1e6
+    mg = ug / 1e3
+    ng = ug * 1e3
+    pg = ug * 1e6
+
+elif ng > 0:
+    g = ng / 1e9
+    mg = ng / 1e6
+    ug = ng / 1e3
+    pg = ng * 1e3
+
+elif pg > 0:
+    g = pg / 1e12
+    mg = pg / 1e9
+    ug = pg / 1e6
+    ng = pg / 1e3
+
+st.write("Converted values updated automatically.")
+    
 st.markdown("---")
 st.caption("🧬 Njue BioTools • Molecular Biology Utilities")

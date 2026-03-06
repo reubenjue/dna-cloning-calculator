@@ -11,7 +11,12 @@ with col2:
     
 import streamlit as st
 
-st.title("DNA Cloning Calculator")
+st.markdown(
+"""
+<h4 style='margin-bottom:5px;'>DNA Cloning Calculator</h4>
+""",
+unsafe_allow_html=True
+)
 
 vector_kb = st.number_input("Vector DNA size (kb)", min_value=0.0)
 insert_kb = st.number_input("Insert DNA size (kb)", min_value=0.0)

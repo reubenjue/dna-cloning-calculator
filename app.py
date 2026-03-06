@@ -10,7 +10,7 @@ import streamlit as st
 # ============================================
 
 st.set_page_config(
-    page_title="DNA Cloning Calculator | Njue BioTools",
+    page_title="DNA Cloning Calculator | RNMolBioTools",
     page_icon="🧬",
     layout="wide"
 )

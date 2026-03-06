@@ -278,52 +278,66 @@ elif st.session_state.page == "sequence":
 # ============================================
 # DNA SEQUENCE MASS CALCULATOR
 # ============================================
-if sequence:
+elif st.session_state.page == "sequence":
+
+    st.markdown("### DNA Sequence Mass Calculator")
+
+    seq_type = st.selectbox(
+        "Sequence Type",
+        ["dsDNA", "ssDNA"]
+    )
+
+    sequence = st.text_area(
+        "Paste DNA sequence (A, T, G, C only)",
+        height=150
+    )
+
+    mass_ng = st.number_input(
+        "Optional: DNA amount (ng)",
+        min_value=0.0,
+        value=0.0
+    )
+
+    if sequence:
+
         # clean sequence
-seq = sequence.upper().replace("\n","").replace(" ","")
+        seq = sequence.upper().replace("\n","").replace(" ","")
 
-if seq:
+        # validate bases
+        valid_bases = set("ATGC")
 
-    valid_bases = {"A","T","G","C"}
+        if not set(seq).issubset(valid_bases):
 
-    # find invalid characters
-    invalid = [base for base in seq if base not in valid_bases]
+            st.error("Invalid input: sequence must contain only A, T, G, C bases.")
 
-    if len(invalid) > 0:
-
-        st.error(
-            f"Invalid input detected. Only A, T, G, C are allowed.\n"
-            f"Invalid characters found: {', '.join(sorted(set(invalid)))}"
-        )
-
-    else:
-
-        length = len(seq)
-
-        if seq_type == "dsDNA":
-            mw_per_bp = 650
         else:
-            mw_per_bp = 330
 
-        mol_weight = length * mw_per_bp
+            length = len(seq)
 
-        st.subheader("Sequence Properties")
+            if seq_type == "dsDNA":
+                mw_per_bp = 650
+            else:
+                mw_per_bp = 330
 
-        st.write(f"Length: **{length} bp**")
-        st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
+            mol_weight = length * mw_per_bp
 
-        pmol_per_ng = (1e-9 / mol_weight) * 1e12
+            st.subheader("Sequence Properties")
 
-        st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
+            st.write(f"Length: **{length} bp**")
+            st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
 
-        if mass_ng > 0:
+            pmol_per_ng = (1e-9 / mol_weight) * 1e12
 
-            moles = (mass_ng * 1e-9) / mol_weight
-            pmol = moles * 1e12
+            st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
 
-            st.subheader("Mass Conversion")
+            if mass_ng > 0:
 
-            st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
+                moles = (mass_ng * 1e-9) / mol_weight
+                pmol = moles * 1e12
+
+                st.subheader("Mass Conversion")
+
+                st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
 # ============================================
 # FOOTER
 # ============================================

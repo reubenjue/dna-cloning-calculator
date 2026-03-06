@@ -278,7 +278,7 @@ elif st.session_state.page == "sequence":
 # ============================================
 # DNA SEQUENCE MASS CALCULATOR
 # ============================================
-
+if sequence:
         # clean sequence
 seq = sequence.upper().replace("\n","").replace(" ","")
 

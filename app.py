@@ -3,6 +3,8 @@
 # ============================================
 
 import streamlit as st
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 # ============================================
@@ -123,7 +125,7 @@ if st.session_state.page == "cloning":
 Typical ligation ratios
 
 Sticky end ligations: **1 : 3**  
-Blunt end ligations: **1 : 4 – 6**  
+Blunt end ligations: **1 : 4 – 6**
 Large fragment ligations: **1 : 1**
 """)
 
@@ -145,7 +147,7 @@ pmol = (ng × 1000) / (bp × 650)
 
 
 # ============================================
-# 6. DNA COPY NUMBER CALCULATOR
+# 6. COPY NUMBER CALCULATOR
 # ============================================
 
 elif st.session_state.page == "copy":
@@ -164,12 +166,10 @@ elif st.session_state.page == "copy":
         pmol = moles * 1e12
         copies = moles * 6.022e23
 
-        st.subheader("Results")
-
-        st.write(f"Molar Mass: {molar_mass:.2e} g/mol")
-        st.write(f"Moles: {moles:.2e} mol")
+        st.write(f"Molar Mass: {molar_mass:.2e}")
+        st.write(f"Moles: {moles:.2e}")
         st.write(f"pmol: {pmol:.4f}")
-        st.write(f"DNA Copies: {copies:.2e}")
+        st.write(f"Copies: {copies:.2e}")
 
     st.caption("ⓘ Calculation assumptions")
 
@@ -180,124 +180,46 @@ Average molecular weight:
 
 **650 g/mol per base pair**
 
-Copies are calculated using **Avogadro's number**:
+Copies calculated using **Avogadro's number**:
 
 6.022 × 10²³ molecules/mol
 """)
 
 
 # ============================================
-# 7. DNA / RNA MASS CONVERSION
+# 7. MASS CONVERSION
 # ============================================
 
 elif st.session_state.page == "conversion":
 
     st.markdown("### DNA/RNA Mass Unit Converter")
 
-    na_type = st.selectbox("Molecule type", ["dsDNA", "ssDNA", "RNA"])
-
-    for key in ["g","mg","ug","ng","pg"]:
-        if key not in st.session_state:
-            st.session_state[key] = 0.0
-
-    def convert_from_g():
-        g = st.session_state.g
-        st.session_state.mg = g * 1e3
-        st.session_state.ug = g * 1e6
-        st.session_state.ng = g * 1e9
-        st.session_state.pg = g * 1e12
-
-    def convert_from_mg():
-        mg = st.session_state.mg
-        st.session_state.g = mg / 1e3
-        st.session_state.ug = mg * 1e3
-        st.session_state.ng = mg * 1e6
-        st.session_state.pg = mg * 1e9
-
-    def convert_from_ug():
-        ug = st.session_state.ug
-        st.session_state.g = ug / 1e6
-        st.session_state.mg = ug / 1e3
-        st.session_state.ng = ug * 1e3
-        st.session_state.pg = ug * 1e6
-
-    def convert_from_ng():
-        ng = st.session_state.ng
-        st.session_state.g = ng / 1e9
-        st.session_state.mg = ng / 1e6
-        st.session_state.ug = ng / 1e3
-        st.session_state.pg = ng * 1e3
-
-    def convert_from_pg():
-        pg = st.session_state.pg
-        st.session_state.g = pg / 1e12
-        st.session_state.mg = pg / 1e9
-        st.session_state.ug = pg / 1e6
-        st.session_state.ng = pg / 1e3
-
-    col1, col2, col3, col4, col5 = st.columns(5)
-
-    col1.number_input("g", key="g", on_change=convert_from_g)
-    col2.number_input("mg", key="mg", on_change=convert_from_mg)
-    col3.number_input("µg", key="ug", on_change=convert_from_ug)
-    col4.number_input("ng", key="ng", on_change=convert_from_ng)
-    col5.number_input("pg", key="pg", on_change=convert_from_pg)
-
-    st.write("Enter a value in any field to convert automatically.")
+    g = st.number_input("g")
+    st.write(f"mg: {g*1e3}")
+    st.write(f"µg: {g*1e6}")
+    st.write(f"ng: {g*1e9}")
+    st.write(f"pg: {g*1e12}")
 
 
 # ============================================
-# 8. DNA SEQUENCE MASS CALCULATOR
+# 8. SEQUENCE MASS
 # ============================================
 
 elif st.session_state.page == "sequence":
 
     st.markdown("### DNA Sequence Mass Calculator")
 
-    seq_type = st.selectbox("Sequence Type", ["dsDNA", "ssDNA"])
+    seq = st.text_area("Paste DNA sequence")
 
-    sequence = st.text_area("Paste DNA sequence (A, T, G, C only)", height=150)
+    if seq:
 
-    mass_ng = st.number_input("Optional: DNA amount (ng)", min_value=0.0, value=0.0)
+        seq = seq.upper().replace("\n","")
 
-    if sequence:
+        length=len(seq)
+        mol_weight=length*650
 
-        seq = sequence.upper().replace("\n","").replace(" ","")
-
-        valid_bases = set("ATGC")
-
-        if not set(seq).issubset(valid_bases):
-
-            st.error("Invalid input: sequence must contain only A, T, G, C bases.")
-
-        else:
-
-            length = len(seq)
-
-            if seq_type == "dsDNA":
-                mw_per_bp = 650
-            else:
-                mw_per_bp = 330
-
-            mol_weight = length * mw_per_bp
-
-            st.subheader("Sequence Properties")
-
-            st.write(f"Length: **{length} bp**")
-            st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
-
-            pmol_per_ng = (1e-9 / mol_weight) * 1e12
-
-            st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
-
-            if mass_ng > 0:
-
-                moles = (mass_ng * 1e-9) / mol_weight
-                pmol = moles * 1e12
-
-                st.subheader("Mass Conversion")
-
-                st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
+        st.write(f"Length: {length}")
+        st.write(f"Molecular weight: {mol_weight:.2e}")
 
 
 # ============================================
@@ -306,204 +228,92 @@ elif st.session_state.page == "sequence":
 
 elif st.session_state.page == "tools":
 
-    st.markdown("### Sequence Analysis Tools")
-
-    # ---------------------------
-    # COMPLEMENT
-    # ---------------------------
-
-    seq = st.text_area("Paste DNA sequence")
-
-    if seq:
-
-        seq = seq.upper().replace("\n","").replace(" ","")
-
-        comp_map = str.maketrans("ATGC","TACG")
-
-        complement = seq.translate(comp_map)
-        rev = complement[::-1]
-
-        st.subheader("Complement")
-        st.code(complement)
-
-        st.subheader("Reverse Complement")
-        st.code(rev)
-
-    st.markdown("---")
-
-    # ---------------------------
-    # ALIGNMENT
-    # ---------------------------
-
-    st.subheader("Pairwise Alignment")
-
-    s1 = st.text_area("First sequence")
-    s2 = st.text_area("Second sequence")
-
-    if st.button("Run Alignment"):
-
-        s1 = s1.upper().replace("\n","").replace(" ","")
-        s2 = s2.upper().replace("\n","").replace(" ","")
-
-        match = 1
-        mismatch = -1
-        gap = -1
-
-        n=len(s1)
-        m=len(s2)
-
-        score=[[0]*(m+1) for _ in range(n+1)]
-
-        for i in range(n+1):
-            score[i][0]=i*gap
-
-        for j in range(m+1):
-            score[0][j]=j*gap
-
-        for i in range(1,n+1):
-            for j in range(1,m+1):
-
-                diag=score[i-1][j-1]+(match if s1[i-1]==s2[j-1] else mismatch)
-                delete=score[i-1][j]+gap
-                insert=score[i][j-1]+gap
-
-                score[i][j]=max(diag,delete,insert)
-
-        align1=""
-        align2=""
-
-        i=n
-        j=m
-        matches=0
-        length=0
-
-        while i>0 or j>0:
-
-            if i>0 and j>0 and score[i][j]==score[i-1][j-1]+(match if s1[i-1]==s2[j-1] else mismatch):
-
-                align1=s1[i-1]+align1
-                align2=s2[j-1]+align2
-
-                if s1[i-1]==s2[j-1]:
-                    matches+=1
-
-                i-=1
-                j-=1
-
-            elif i>0 and score[i][j]==score[i-1][j]+gap:
-
-                align1=s1[i-1]+align1
-                align2="-"+align2
-                i-=1
-
-            else:
-
-                align1="-"+align1
-                align2=s2[j-1]+align2
-                j-=1
-
-            length+=1
-
-        percent=(matches/length)*100
-
-        visual=""
-
-        for a,b in zip(align1,align2):
-
-            if a==b:
-                visual+="|"
-            elif a=="-" or b=="-":
-                visual+=" "
-            else:
-                visual+="."
-
-        mismatch=False
-
-        for a,b in zip(align1[-5:],align2[-5:]):
-            if a!=b:
-                mismatch=True
-
-        if mismatch:
-            warn="⚠ Possible 3′ primer mismatch detected"
-        else:
-            warn="3′ end appears well matched"
-
-        st.write(f"Alignment Score: {score[n][m]}")
-        st.write(f"Complementarity: {percent:.2f}%")
-        st.write(warn)
-
-        st.code(f"{align1}\n{visual}\n{align2}")
-
-    st.markdown("---")
-
-    # ---------------------------
-    # PRIMER GENERATOR
-    # ---------------------------
-
-    st.subheader("Primer Generator")
+    st.markdown("### Sequence Tools")
 
     template = st.text_area("Template DNA")
-    length = st.number_input("Primer length", value=20)
 
-    if st.button("Generate Primers"):
+    if template:
 
-        template = template.upper().replace("\n","").replace(" ","")
+        template=template.upper().replace("\n","")
 
-        comp = str.maketrans("ATGC","TACG")
+        st.subheader("Restriction Enzyme Site Scanner")
 
-        forward = template[:length]
-        reverse = template[-length:].translate(comp)[::-1]
+        enzymes={
+            "EcoRI":"GAATTC",
+            "BamHI":"GGATCC",
+            "HindIII":"AAGCTT",
+            "XhoI":"CTCGAG"
+        }
 
-        def gc(seq):
-            return (seq.count("G")+seq.count("C"))/len(seq)*100
+        cut_positions=[]
 
-        def tm(seq):
-            return 2*(seq.count("A")+seq.count("T"))+4*(seq.count("G")+seq.count("C"))
+        for enzyme,site in enzymes.items():
 
-        def gc_clamp(seq):
-            last5=seq[-5:]
-            gc_count=last5.count("G")+last5.count("C")
-            if gc_count>=2:
-                return "Good GC clamp"
-            return "Weak GC clamp"
+            start=0
+            while True:
+                pos=template.find(site,start)
+                if pos==-1:
+                    break
+                st.write(f"{enzyme} ({site}) at position {pos+1}")
+                cut_positions.append((enzyme,pos+1))
+                start=pos+1
 
-        def reverse_comp(seq):
-            return seq.translate(comp)[::-1]
 
-        def hairpin_check(seq):
-            rc=reverse_comp(seq)
-            for i in range(len(seq)-4):
-                if seq[i:i+4] in rc:
-                    return "Possible hairpin"
-            return "No strong hairpin detected"
+        # ----------------------------------------
+        # Restriction Digest Simulator
+        # ----------------------------------------
 
-        def dimer_check(p1,p2):
-            rc2=reverse_comp(p2)
-            for i in range(len(p1)-4):
-                if p1[i:i+4] in rc2:
-                    return "Possible primer dimer"
-            return "No strong dimer detected"
+        st.subheader("Restriction Digest Simulator")
 
-        st.write("Forward Primer")
-        st.code(forward)
-        st.write(f"GC%: {gc(forward):.1f}")
-        st.write(f"Tm: {tm(forward)} °C")
-        st.write(gc_clamp(forward))
-        st.write(hairpin_check(forward))
+        if cut_positions:
 
-        st.write("Reverse Primer")
-        st.code(reverse)
-        st.write(f"GC%: {gc(reverse):.1f}")
-        st.write(f"Tm: {tm(reverse)} °C")
-        st.write(gc_clamp(reverse))
-        st.write(hairpin_check(reverse))
+            cuts=sorted([p for _,p in cut_positions])
+            fragments=[]
+            prev=0
 
-        st.write("Dimer Check")
-        st.write(dimer_check(forward,reverse))
+            for c in cuts:
+                fragments.append(c-prev)
+                prev=c
+
+            fragments.append(len(template)-prev)
+
+            st.write("Predicted fragment sizes (bp):")
+            st.write(sorted(fragments))
+
+
+        # ----------------------------------------
+        # Graphical Restriction Map
+        # ----------------------------------------
+
+        st.subheader("Plasmid Restriction Map")
+
+        seq_len=len(template)
+
+        fig, ax = plt.subplots(figsize=(6,6))
+
+        circle = plt.Circle((0,0),1,fill=False,linewidth=2)
+        ax.add_patch(circle)
+
+        for enzyme,pos in cut_positions:
+
+            angle = 2*np.pi*(pos/seq_len)
+
+            x = np.cos(angle)
+            y = np.sin(angle)
+
+            ax.plot([0,x],[0,y])
+
+            ax.text(1.2*x,1.2*y,f"{enzyme}\n{pos}",ha='center')
+
+        ax.set_xlim(-1.5,1.5)
+        ax.set_ylim(-1.5,1.5)
+        ax.axis("off")
+
+        st.pyplot(fig)
 
 
 # ============================================
-# 10. FOOTER
+# FOOTER
 # ============================================
 
 st.markdown("---")

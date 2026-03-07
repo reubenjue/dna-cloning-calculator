@@ -194,10 +194,7 @@ elif st.session_state.page == "conversion":
 
     st.markdown("### DNA/RNA Mass Unit Converter")
 
-    na_type = st.selectbox(
-        "Molecule type",
-        ["dsDNA", "ssDNA", "RNA"]
-    )
+    na_type = st.selectbox("Molecule type", ["dsDNA", "ssDNA", "RNA"])
 
     for key in ["g","mg","ug","ng","pg"]:
         if key not in st.session_state:
@@ -311,6 +308,10 @@ elif st.session_state.page == "tools":
 
     st.markdown("### Sequence Analysis Tools")
 
+    # ---------------------------
+    # COMPLEMENT
+    # ---------------------------
+
     seq = st.text_area("Paste DNA sequence")
 
     if seq:
@@ -329,6 +330,10 @@ elif st.session_state.page == "tools":
         st.code(rev)
 
     st.markdown("---")
+
+    # ---------------------------
+    # ALIGNMENT
+    # ---------------------------
 
     st.subheader("Pairwise Alignment")
 
@@ -431,6 +436,10 @@ elif st.session_state.page == "tools":
 
     st.markdown("---")
 
+    # ---------------------------
+    # PRIMER GENERATOR
+    # ---------------------------
+
     st.subheader("Primer Generator")
 
     template = st.text_area("Template DNA")
@@ -440,10 +449,9 @@ elif st.session_state.page == "tools":
 
         template = template.upper().replace("\n","").replace(" ","")
 
-        forward = template[:length]
-
         comp = str.maketrans("ATGC","TACG")
 
+        forward = template[:length]
         reverse = template[-length:].translate(comp)[::-1]
 
         def gc(seq):
@@ -452,15 +460,46 @@ elif st.session_state.page == "tools":
         def tm(seq):
             return 2*(seq.count("A")+seq.count("T"))+4*(seq.count("G")+seq.count("C"))
 
+        def gc_clamp(seq):
+            last5=seq[-5:]
+            gc_count=last5.count("G")+last5.count("C")
+            if gc_count>=2:
+                return "Good GC clamp"
+            return "Weak GC clamp"
+
+        def reverse_comp(seq):
+            return seq.translate(comp)[::-1]
+
+        def hairpin_check(seq):
+            rc=reverse_comp(seq)
+            for i in range(len(seq)-4):
+                if seq[i:i+4] in rc:
+                    return "Possible hairpin"
+            return "No strong hairpin detected"
+
+        def dimer_check(p1,p2):
+            rc2=reverse_comp(p2)
+            for i in range(len(p1)-4):
+                if p1[i:i+4] in rc2:
+                    return "Possible primer dimer"
+            return "No strong dimer detected"
+
         st.write("Forward Primer")
         st.code(forward)
         st.write(f"GC%: {gc(forward):.1f}")
         st.write(f"Tm: {tm(forward)} °C")
+        st.write(gc_clamp(forward))
+        st.write(hairpin_check(forward))
 
         st.write("Reverse Primer")
         st.code(reverse)
         st.write(f"GC%: {gc(reverse):.1f}")
         st.write(f"Tm: {tm(reverse)} °C")
+        st.write(gc_clamp(reverse))
+        st.write(hairpin_check(reverse))
+
+        st.write("Dimer Check")
+        st.write(dimer_check(forward,reverse))
 
 
 # ============================================

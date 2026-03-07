@@ -126,22 +126,6 @@ Sticky end ligations: **1 : 3**
 Blunt end ligations: **1 : 4 – 6**  
 Large fragment ligations: **1 : 1**
 """)
- st.caption("ⓘ Calculation assumptions")
-
-    with st.expander("How the ligation calculation works"):
-
-        st.markdown("""
-DNA ligation efficiency depends on **molar ratios** rather than mass.
-
-Average molecular weight of dsDNA:
-
-**650–660 g/mol per bp**
-
-Conversion used:
-
-pmol = (ng × 1000) / (bp × 650)
-""")
-
 
 # ============================================
 # 6. DNA COPY NUMBER CALCULATOR (UNCHANGED)
@@ -170,19 +154,7 @@ elif st.session_state.page == "copy":
         st.write(f"pmol: {pmol:.4f}")
         st.write(f"DNA Copies: {copies:.2e}")
 
-st.caption("ⓘ Calculation assumptions")
 
-    with st.expander("How DNA copy number is calculated"):
-
-        st.markdown("""
-Average molecular weight:
-
-**650 g/mol per base pair**
-
-Copies are calculated using **Avogadro's number**:
-
-6.022 × 10²³ molecules/mol
-""")
 # ============================================
 # 7. DNA / RNA MASS CONVERSION (UNCHANGED)
 # ============================================

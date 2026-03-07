@@ -86,7 +86,7 @@ st.markdown("---")
 
 
 # ============================================
-# 5. DNA CLONING CALCULATOR (UNCHANGED)
+# 5. DNA CLONING CALCULATOR
 # ============================================
 
 if st.session_state.page == "cloning":
@@ -126,11 +126,12 @@ Sticky end ligations: **1 : 3**
 Blunt end ligations: **1 : 4 – 6**  
 Large fragment ligations: **1 : 1**
 """)
+
     st.caption("ⓘ Calculation assumptions")
 
-with st.expander("How the ligation calculation works"):
+    with st.expander("How the ligation calculation works"):
 
-    st.markdown("""
+        st.markdown("""
 DNA ligation efficiency depends on **molar ratios** rather than mass.
 
 Average molecular weight of dsDNA:
@@ -142,8 +143,9 @@ Conversion used:
 pmol = (ng × 1000) / (bp × 650)
 """)
 
+
 # ============================================
-# 6. DNA COPY NUMBER CALCULATOR (UNCHANGED)
+# 6. DNA COPY NUMBER CALCULATOR
 # ============================================
 
 elif st.session_state.page == "copy":
@@ -168,12 +170,12 @@ elif st.session_state.page == "copy":
         st.write(f"Moles: {moles:.2e} mol")
         st.write(f"pmol: {pmol:.4f}")
         st.write(f"DNA Copies: {copies:.2e}")
-        
-st.caption("ⓘ Calculation assumptions")
 
-with st.expander("How DNA copy number is calculated"):
+    st.caption("ⓘ Calculation assumptions")
 
-    st.markdown("""
+    with st.expander("How DNA copy number is calculated"):
+
+        st.markdown("""
 Average molecular weight:
 
 **650 g/mol per base pair**
@@ -183,8 +185,9 @@ Copies are calculated using **Avogadro's number**:
 6.022 × 10²³ molecules/mol
 """)
 
+
 # ============================================
-# 7. DNA / RNA MASS CONVERSION (UNCHANGED)
+# 7. DNA / RNA MASS CONVERSION
 # ============================================
 
 elif st.session_state.page == "conversion":
@@ -200,14 +203,12 @@ elif st.session_state.page == "conversion":
         if key not in st.session_state:
             st.session_state[key] = 0.0
 
-
     def convert_from_g():
         g = st.session_state.g
         st.session_state.mg = g * 1e3
         st.session_state.ug = g * 1e6
         st.session_state.ng = g * 1e9
         st.session_state.pg = g * 1e12
-
 
     def convert_from_mg():
         mg = st.session_state.mg
@@ -216,14 +217,12 @@ elif st.session_state.page == "conversion":
         st.session_state.ng = mg * 1e6
         st.session_state.pg = mg * 1e9
 
-
     def convert_from_ug():
         ug = st.session_state.ug
         st.session_state.g = ug / 1e6
         st.session_state.mg = ug / 1e3
         st.session_state.ng = ug * 1e3
         st.session_state.pg = ug * 1e6
-
 
     def convert_from_ng():
         ng = st.session_state.ng
@@ -232,14 +231,12 @@ elif st.session_state.page == "conversion":
         st.session_state.ug = ng / 1e3
         st.session_state.pg = ng * 1e3
 
-
     def convert_from_pg():
         pg = st.session_state.pg
         st.session_state.g = pg / 1e12
         st.session_state.mg = pg / 1e9
         st.session_state.ug = pg / 1e6
         st.session_state.ng = pg / 1e3
-
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
@@ -249,30 +246,22 @@ elif st.session_state.page == "conversion":
     col4.number_input("ng", key="ng", on_change=convert_from_ng)
     col5.number_input("pg", key="pg", on_change=convert_from_pg)
 
+    st.write("Enter a value in any field to convert automatically.")
+
 
 # ============================================
-# 8. DNA SEQUENCE MASS CALCULATOR (UNCHANGED)
+# 8. DNA SEQUENCE MASS CALCULATOR
 # ============================================
 
 elif st.session_state.page == "sequence":
 
     st.markdown("### DNA Sequence Mass Calculator")
 
-    seq_type = st.selectbox(
-        "Sequence Type",
-        ["dsDNA", "ssDNA"]
-    )
+    seq_type = st.selectbox("Sequence Type", ["dsDNA", "ssDNA"])
 
-    sequence = st.text_area(
-        "Paste DNA sequence (A, T, G, C only)",
-        height=150
-    )
+    sequence = st.text_area("Paste DNA sequence (A, T, G, C only)", height=150)
 
-    mass_ng = st.number_input(
-        "Optional: DNA amount (ng)",
-        min_value=0.0,
-        value=0.0
-    )
+    mass_ng = st.number_input("Optional: DNA amount (ng)", min_value=0.0, value=0.0)
 
     if sequence:
 
@@ -315,16 +304,12 @@ elif st.session_state.page == "sequence":
 
 
 # ============================================
-# 9. SEQUENCE TOOLS (NEW FEATURES)
+# 9. SEQUENCE TOOLS
 # ============================================
 
 elif st.session_state.page == "tools":
 
     st.markdown("### Sequence Analysis Tools")
-
-    # ---------------------------
-    # COMPLEMENT
-    # ---------------------------
 
     seq = st.text_area("Paste DNA sequence")
 
@@ -338,18 +323,12 @@ elif st.session_state.page == "tools":
         rev = complement[::-1]
 
         st.subheader("Complement")
-
         st.code(complement)
 
         st.subheader("Reverse Complement")
-
         st.code(rev)
 
     st.markdown("---")
-
-    # ---------------------------
-    # ALIGNMENT
-    # ---------------------------
 
     st.subheader("Pairwise Alignment")
 
@@ -452,10 +431,6 @@ elif st.session_state.page == "tools":
 
     st.markdown("---")
 
-    # ---------------------------
-    # PRIMER DESIGN
-    # ---------------------------
-
     st.subheader("Primer Generator")
 
     template = st.text_area("Template DNA")
@@ -489,7 +464,7 @@ elif st.session_state.page == "tools":
 
 
 # ============================================
-# FOOTER
+# 10. FOOTER
 # ============================================
 
 st.markdown("---")

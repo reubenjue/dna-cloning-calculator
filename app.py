@@ -332,109 +332,255 @@ elif st.session_state.page == "tools":
     st.markdown("---")
 
     # ---------------------------
-    # ALIGNMENT
-    # ---------------------------
+# ALIGNMENT (ADVANCED)
+# ---------------------------
 
-    st.subheader("Pairwise Alignment")
+st.subheader("Pairwise Alignment")
 
-    s1 = st.text_area("First sequence")
-    s2 = st.text_area("Second sequence")
+mode = st.selectbox(
+    "Alignment type",
+    ["Local (Smith-Waterman)", "Global (Affine gaps)"],
+    key="align_mode"
+)
 
-    if st.button("Run Alignment"):
+s1 = st.text_area("First sequence", key="align_s1")
+s2 = st.text_area("Second sequence", key="align_s2")
 
-        s1 = s1.upper().replace("\n","").replace(" ","")
-        s2 = s2.upper().replace("\n","").replace(" ","")
+# ---------------------------
+# SCORING (TRANSITION AWARE)
+# ---------------------------
 
-        match = 1
-        mismatch = -1
-        gap = -1
+transitions = {"AG", "GA", "CT", "TC"}
 
-        n=len(s1)
-        m=len(s2)
+def score_pair(a, b):
+    if a == b:
+        return 2
+    elif a + b in transitions:
+        return -0.5   # transition (less severe)
+    else:
+        return -1     # transversion
 
-        score=[[0]*(m+1) for _ in range(n+1)]
 
-        for i in range(n+1):
-            score[i][0]=i*gap
+# ---------------------------
+# VISUALIZATION (COLORED)
+# ---------------------------
 
-        for j in range(m+1):
-            score[0][j]=j*gap
-
-        for i in range(1,n+1):
-            for j in range(1,m+1):
-
-                diag=score[i-1][j-1]+(match if s1[i-1]==s2[j-1] else mismatch)
-                delete=score[i-1][j]+gap
-                insert=score[i][j-1]+gap
-
-                score[i][j]=max(diag,delete,insert)
-
-        align1=""
-        align2=""
-
-        i=n
-        j=m
-        matches=0
-        length=0
-
-        while i>0 or j>0:
-
-            if i>0 and j>0 and score[i][j]==score[i-1][j-1]+(match if s1[i-1]==s2[j-1] else mismatch):
-
-                align1=s1[i-1]+align1
-                align2=s2[j-1]+align2
-
-                if s1[i-1]==s2[j-1]:
-                    matches+=1
-
-                i-=1
-                j-=1
-
-            elif i>0 and score[i][j]==score[i-1][j]+gap:
-
-                align1=s1[i-1]+align1
-                align2="-"+align2
-                i-=1
-
-            else:
-
-                align1="-"+align1
-                align2=s2[j-1]+align2
-                j-=1
-
-            length+=1
-
-        percent=(matches/length)*100
-
-        visual=""
-
-        for a,b in zip(align1,align2):
-
-            if a==b:
-                visual+="|"
-            elif a=="-" or b=="-":
-                visual+=" "
-            else:
-                visual+="."
-
-        mismatch=False
-
-        for a,b in zip(align1[-5:],align2[-5:]):
-            if a!=b:
-                mismatch=True
-
-        if mismatch:
-            warn="⚠ Possible 3′ primer mismatch detected"
+def render_alignment_colored(a1, a2):
+    html = ""
+    for x, y in zip(a1, a2):
+        if x == y:
+            html += f"<span style='color:green'>{x}</span>"
+        elif "-" in (x, y):
+            html += f"<span style='color:gray'>{x}</span>"
         else:
-            warn="3′ end appears well matched"
+            html += f"<span style='color:red'>{x}</span>"
 
-        st.write(f"Alignment Score: {score[n][m]}")
-        st.write(f"Complementarity: {percent:.2f}%")
-        st.write(warn)
+    html2 = ""
+    for x, y in zip(a1, a2):
+        if x == y:
+            html2 += f"<span style='color:green'>{y}</span>"
+        elif "-" in (x, y):
+            html2 += f"<span style='color:gray'>{y}</span>"
+        else:
+            html2 += f"<span style='color:red'>{y}</span>"
 
-        st.code(f"{align1}\n{visual}\n{align2}")
+    st.markdown(html, unsafe_allow_html=True)
+    st.markdown(html2, unsafe_allow_html=True)
 
-    st.markdown("---")
+
+def render_alignment_plain(a1, a2):
+    visual = "".join(
+        "|" if x == y else " " if "-" in (x, y) else "."
+        for x, y in zip(a1, a2)
+    )
+    st.code(f"{a1}\n{visual}\n{a2}")
+
+
+# ---------------------------
+# SMITH-WATERMAN
+# ---------------------------
+
+def smith_waterman(s1, s2):
+
+    gap = -2
+    n, m = len(s1), len(s2)
+
+    score = [[0]*(m+1) for _ in range(n+1)]
+
+    max_score = 0
+    max_pos = (0, 0)
+
+    for i in range(1, n+1):
+        for j in range(1, m+1):
+
+            diag = score[i-1][j-1] + score_pair(s1[i-1], s2[j-1])
+            delete = score[i-1][j] + gap
+            insert = score[i][j-1] + gap
+
+            score[i][j] = max(0, diag, delete, insert)
+
+            if score[i][j] > max_score:
+                max_score = score[i][j]
+                max_pos = (i, j)
+
+    align1, align2 = "", ""
+    i, j = max_pos
+    matches, length = 0, 0
+
+    while i > 0 and j > 0 and score[i][j] != 0:
+
+        if score[i][j] == score[i-1][j-1] + score_pair(s1[i-1], s2[j-1]):
+            align1 = s1[i-1] + align1
+            align2 = s2[j-1] + align2
+            if s1[i-1] == s2[j-1]:
+                matches += 1
+            i -= 1
+            j -= 1
+
+        elif score[i][j] == score[i-1][j] - 2:
+            align1 = s1[i-1] + align1
+            align2 = "-" + align2
+            i -= 1
+
+        else:
+            align1 = "-" + align1
+            align2 = s2[j-1] + align2
+            j -= 1
+
+        length += 1
+
+    identity = (matches / length * 100) if length > 0 else 0
+
+    return align1, align2, max_score, identity
+
+
+# ---------------------------
+# AFFINE GAP (GOTOH)
+# ---------------------------
+
+def affine_global(s1, s2):
+
+    gap_open, gap_extend = -5, -1
+
+    n, m = len(s1), len(s2)
+
+    M = [[0]*(m+1) for _ in range(n+1)]
+    X = [[0]*(m+1) for _ in range(n+1)]
+    Y = [[0]*(m+1) for _ in range(n+1)]
+
+    for i in range(1, n+1):
+        M[i][0] = gap_open + (i-1)*gap_extend
+        X[i][0] = M[i][0]
+
+    for j in range(1, m+1):
+        M[0][j] = gap_open + (j-1)*gap_extend
+        Y[0][j] = M[0][j]
+
+    for i in range(1, n+1):
+        for j in range(1, m+1):
+
+            X[i][j] = max(
+                M[i-1][j] + gap_open,
+                X[i-1][j] + gap_extend
+            )
+
+            Y[i][j] = max(
+                M[i][j-1] + gap_open,
+                Y[i][j-1] + gap_extend
+            )
+
+            M[i][j] = max(
+                M[i-1][j-1] + score_pair(s1[i-1], s2[j-1]),
+                X[i][j],
+                Y[i][j]
+            )
+
+    align1, align2 = "", ""
+    i, j = n, m
+
+    while i > 0 or j > 0:
+
+        if i > 0 and j > 0 and M[i][j] == M[i-1][j-1] + score_pair(s1[i-1], s2[j-1]):
+            align1 = s1[i-1] + align1
+            align2 = s2[j-1] + align2
+            i -= 1
+            j -= 1
+
+        elif i > 0 and M[i][j] == X[i][j]:
+            align1 = s1[i-1] + align1
+            align2 = "-" + align2
+            i -= 1
+
+        else:
+            align1 = "-" + align1
+            align2 = s2[j-1] + align2
+            j -= 1
+
+    return align1, align2, M[n][m]
+
+
+# ---------------------------
+# EXPORT FUNCTIONS
+# ---------------------------
+
+def export_fasta(a1, a2):
+    return f">Sequence_1\n{a1}\n>Sequence_2\n{a2}"
+
+
+def export_clustal(a1, a2):
+    return f"CLUSTAL format\n\nSeq1    {a1}\nSeq2    {a2}"
+
+
+# ---------------------------
+# RUN ALIGNMENT
+# ---------------------------
+
+if st.button("Run Alignment"):
+
+    s1 = s1.upper().replace("\n","").replace(" ","")
+    s2 = s2.upper().replace("\n","").replace(" ","")
+
+    valid_bases = set("ATGC")
+
+    if not s1 or not s2:
+        st.warning("Please provide both sequences.")
+        st.stop()
+
+    if not set(s1).issubset(valid_bases) or not set(s2).issubset(valid_bases):
+        st.error("Sequences must contain only A, T, G, C.")
+        st.stop()
+
+    if mode == "Local (Smith-Waterman)":
+        a1, a2, score, identity = smith_waterman(s1, s2)
+        st.write(f"Max Alignment Score: {score}")
+        st.write(f"Identity: {identity:.2f}%")
+
+    else:
+        a1, a2, score = affine_global(s1, s2)
+        st.write(f"Alignment Score: {score}")
+
+        mismatch = any(a != b for a, b in zip(a1[-5:], a2[-5:]))
+        if mismatch:
+            st.warning("⚠ Possible 3′ primer mismatch detected")
+        else:
+            st.success("3′ end appears well matched")
+
+    # Render
+    render_alignment_plain(a1, a2)
+    st.markdown("### Colored Alignment")
+    render_alignment_colored(a1, a2)
+
+    # Export
+    st.markdown("### Export Alignment")
+
+    fasta = export_fasta(a1, a2)
+    clustal = export_clustal(a1, a2)
+
+    st.download_button("Download FASTA", fasta, file_name="alignment.fasta")
+    st.download_button("Download CLUSTAL", clustal, file_name="alignment.aln")
+
+
+st.markdown("---")
 
     # ---------------------------
     # PRIMER GENERATOR

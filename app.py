@@ -583,7 +583,7 @@ if st.button("Run Alignment"):
     st.download_button("Download CLUSTAL", clustal, file_name="alignment.aln")
 
 
-st.markdown("---")
+    st.markdown("---")
 # ---------------------------
 # PRIMER GENERATOR
 # ---------------------------

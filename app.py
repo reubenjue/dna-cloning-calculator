@@ -585,7 +585,6 @@ st.markdown("---")
 # PRIMER GENERATOR
 # ---------------------------
     st.subheader("Primer Generator")
-
     template = st.text_area("Template DNA")
     length = st.number_input("Primer length", value=20)
 

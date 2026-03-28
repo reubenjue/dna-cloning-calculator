@@ -340,68 +340,90 @@ elif st.session_state.page == "tools":
         )
         st.code(f"{a1}\n{visual}\n{a2}")
 
+    def to_clustal(name1, name2, seq1, seq2):
+        lines = ["CLUSTAL W alignment\n"]
+        block_size = 60
+
+        for i in range(0, len(seq1), block_size):
+            chunk1 = seq1[i:i+block_size]
+            chunk2 = seq2[i:i+block_size]
+
+            lines.append(f"{name1:<10} {chunk1}")
+            lines.append(f"{name2:<10} {chunk2}")
+
+            consensus = ""
+            for a, b in zip(chunk1, chunk2):
+                consensus += "*" if a == b else " "
+
+            lines.append(f"{'':<10} {consensus}\n")
+
+        return "\n".join(lines)
+
+    # 🔬 Local alignment with full-sequence embedding
     def smith_waterman(s1, s2):
-    match, mismatch, gap = 2, -1, -2
-    n, m = len(s1), len(s2)
 
-    score = [[0]*(m+1) for _ in range(n+1)]
+        match, mismatch, gap = 2, -1, -2
+        n, m = len(s1), len(s2)
 
-    max_score = 0
-    max_pos = (0, 0)
+        score = [[0]*(m+1) for _ in range(n+1)]
 
-    for i in range(1, n+1):
-        for j in range(1, m+1):
+        max_score = 0
+        max_pos = (0, 0)
 
-            diag = score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch)
-            delete = score[i-1][j] + gap
-            insert = score[i][j-1] + gap
+        for i in range(1, n+1):
+            for j in range(1, m+1):
 
-            score[i][j] = max(0, diag, delete, insert)
+                diag = score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch)
+                delete = score[i-1][j] + gap
+                insert = score[i][j-1] + gap
 
-            if score[i][j] > max_score:
-                max_score = score[i][j]
-                max_pos = (i, j)
+                score[i][j] = max(0, diag, delete, insert)
 
-    # Traceback (local region)
-    align1, align2 = "", ""
-    i, j = max_pos
-    matches, length = 0, 0
+                if score[i][j] > max_score:
+                    max_score = score[i][j]
+                    max_pos = (i, j)
 
-    end_i, end_j = i, j  # track end
+        align1, align2 = "", ""
+        i, j = max_pos
 
-    while i > 0 and j > 0 and score[i][j] != 0:
+        matches, length = 0, 0
+        end_i, end_j = i, j
 
-        if score[i][j] == score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch):
-            align1 = s1[i-1] + align1
-            align2 = s2[j-1] + align2
-            if s1[i-1] == s2[j-1]:
-                matches += 1
-            i -= 1
-            j -= 1
+        while i > 0 and j > 0 and score[i][j] != 0:
 
-        elif score[i][j] == score[i-1][j] + gap:
-            align1 = s1[i-1] + align1
-            align2 = "-" + align2
-            i -= 1
+            if score[i][j] == score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch):
+                align1 = s1[i-1] + align1
+                align2 = s2[j-1] + align2
+                if s1[i-1] == s2[j-1]:
+                    matches += 1
+                i -= 1
+                j -= 1
 
-        else:
-            align1 = "-" + align1
-            align2 = s2[j-1] + align2
-            j -= 1
+            elif score[i][j] == score[i-1][j] + gap:
+                align1 = s1[i-1] + align1
+                align2 = "-" + align2
+                i -= 1
 
-        length += 1
+            else:
+                align1 = "-" + align1
+                align2 = s2[j-1] + align2
+                j -= 1
 
-    start_i, start_j = i, j
+            length += 1
 
-    # 🔥 Embed into full sequences
-    full1 = s1[:start_i] + align1 + s1[end_i:]
-    full2 = s2[:start_j] + align2 + s2[end_j:]
+        start_i, start_j = i, j
 
-    identity = (matches/length*100) if length > 0 else 0
+        # Embed back into full sequences
+        full1 = s1[:start_i] + align1 + s1[end_i:]
+        full2 = s2[:start_j] + align2 + s2[end_j:]
 
-    return full1, full2, max_score, identity, (start_i, end_i)
+        identity = (matches/length*100) if length > 0 else 0
 
+        return full1, full2, max_score, identity
+
+    # Global affine gap alignment
     def affine_global(s1, s2):
+
         match, mismatch = 1, -1
         gap_open, gap_extend = -5, -1
 
@@ -422,15 +444,8 @@ elif st.session_state.page == "tools":
         for i in range(1, n+1):
             for j in range(1, m+1):
 
-                X[i][j] = max(
-                    M[i-1][j] + gap_open,
-                    X[i-1][j] + gap_extend
-                )
-
-                Y[i][j] = max(
-                    M[i][j-1] + gap_open,
-                    Y[i][j-1] + gap_extend
-                )
+                X[i][j] = max(M[i-1][j] + gap_open, X[i-1][j] + gap_extend)
+                Y[i][j] = max(M[i][j-1] + gap_open, Y[i][j-1] + gap_extend)
 
                 M[i][j] = max(
                     M[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch),
@@ -497,15 +512,12 @@ elif st.session_state.page == "tools":
             st.write(f"Max Alignment Score: {score}")
             st.write(f"Identity: {identity:.2f}%")
 
-            render_alignment(a1, a2)
-
         else:
 
             a1, a2, score = affine_global(s1, s2)
 
             matches = sum(1 for x,y in zip(a1,a2) if x==y)
-            length = len(a1)
-            identity = (matches/length*100) if length > 0 else 0
+            identity = (matches/len(a1)*100) if len(a1)>0 else 0
 
             st.write(f"Alignment Score: {score}")
             st.write(f"Identity: {identity:.2f}%")
@@ -517,7 +529,27 @@ elif st.session_state.page == "tools":
             else:
                 st.write("3′ end appears well matched")
 
-            render_alignment(a1, a2)
+        render_alignment(a1, a2)
+
+        # ---------------------------
+        # DOWNLOAD OPTIONS
+        # ---------------------------
+
+        clustal_text = to_clustal("Seq1", "Seq2", a1, a2)
+
+        st.download_button(
+            "Download Clustal (.aln)",
+            clustal_text,
+            file_name="alignment.aln"
+        )
+
+        fasta_text = f">Seq1\n{a1}\n>Seq2\n{a2}"
+
+        st.download_button(
+            "Download FASTA",
+            fasta_text,
+            file_name="alignment.fasta"
+        )
 
     st.markdown("---")
 

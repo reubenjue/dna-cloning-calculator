@@ -588,8 +588,8 @@ st.markdown("---")
 
 st.subheader("Primer Generator")
 
-    template = st.text_area("Template DNA")
-    length = st.number_input("Primer length", value=20)
+template = st.text_area("Template DNA")
+length = st.number_input("Primer length", value=20)
 
     if st.button("Generate Primers"):
 

@@ -78,9 +78,9 @@ with col4:
     if st.button("🧾 Sequence Mass", use_container_width=True):
         st.session_state.page = "sequence"
 
-#with col5:
-   # if st.button("🧪 Sequence Tools", use_container_width=True):
-        #st.session_state.page = "tools"
+with col5:
+    if st.button("🧪 Sequence Tools", use_container_width=True):
+        st.session_state.page = "tools"
 
 st.markdown("---")
 

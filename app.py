@@ -341,55 +341,65 @@ elif st.session_state.page == "tools":
         st.code(f"{a1}\n{visual}\n{a2}")
 
     def smith_waterman(s1, s2):
-        match, mismatch, gap = 2, -1, -2
-        n, m = len(s1), len(s2)
+    match, mismatch, gap = 2, -1, -2
+    n, m = len(s1), len(s2)
 
-        score = [[0]*(m+1) for _ in range(n+1)]
+    score = [[0]*(m+1) for _ in range(n+1)]
 
-        max_score = 0
-        max_pos = (0, 0)
+    max_score = 0
+    max_pos = (0, 0)
 
-        for i in range(1, n+1):
-            for j in range(1, m+1):
+    for i in range(1, n+1):
+        for j in range(1, m+1):
 
-                diag = score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch)
-                delete = score[i-1][j] + gap
-                insert = score[i][j-1] + gap
+            diag = score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch)
+            delete = score[i-1][j] + gap
+            insert = score[i][j-1] + gap
 
-                score[i][j] = max(0, diag, delete, insert)
+            score[i][j] = max(0, diag, delete, insert)
 
-                if score[i][j] > max_score:
-                    max_score = score[i][j]
-                    max_pos = (i, j)
+            if score[i][j] > max_score:
+                max_score = score[i][j]
+                max_pos = (i, j)
 
-        align1, align2 = "", ""
-        i, j = max_pos
-        matches, length = 0, 0
+    # Traceback (local region)
+    align1, align2 = "", ""
+    i, j = max_pos
+    matches, length = 0, 0
 
-        while i > 0 and j > 0 and score[i][j] != 0:
+    end_i, end_j = i, j  # track end
 
-            if score[i][j] == score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch):
-                align1 = s1[i-1] + align1
-                align2 = s2[j-1] + align2
-                if s1[i-1] == s2[j-1]:
-                    matches += 1
-                i -= 1
-                j -= 1
+    while i > 0 and j > 0 and score[i][j] != 0:
 
-            elif score[i][j] == score[i-1][j] + gap:
-                align1 = s1[i-1] + align1
-                align2 = "-" + align2
-                i -= 1
+        if score[i][j] == score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch):
+            align1 = s1[i-1] + align1
+            align2 = s2[j-1] + align2
+            if s1[i-1] == s2[j-1]:
+                matches += 1
+            i -= 1
+            j -= 1
 
-            else:
-                align1 = "-" + align1
-                align2 = s2[j-1] + align2
-                j -= 1
+        elif score[i][j] == score[i-1][j] + gap:
+            align1 = s1[i-1] + align1
+            align2 = "-" + align2
+            i -= 1
 
-            length += 1
+        else:
+            align1 = "-" + align1
+            align2 = s2[j-1] + align2
+            j -= 1
 
-        identity = (matches/length*100) if length > 0 else 0
-        return align1, align2, max_score, identity
+        length += 1
+
+    start_i, start_j = i, j
+
+    # 🔥 Embed into full sequences
+    full1 = s1[:start_i] + align1 + s1[end_i:]
+    full2 = s2[:start_j] + align2 + s2[end_j:]
+
+    identity = (matches/length*100) if length > 0 else 0
+
+    return full1, full2, max_score, identity, (start_i, end_i)
 
     def affine_global(s1, s2):
         match, mismatch = 1, -1

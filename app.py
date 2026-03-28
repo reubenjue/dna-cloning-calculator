@@ -312,12 +312,10 @@ elif st.session_state.page == "tools":
     # COMPLEMENT
     # ---------------------------
 
-    seq = st.text_area("Paste DNA sequence")
+    seq = st.text_area("Paste DNA sequence", key="comp_seq")
 
     if seq:
-
         seq = seq.upper().replace("\n","").replace(" ","")
-
         comp_map = str.maketrans("ATGC","TACG")
 
         complement = seq.translate(comp_map)
@@ -332,107 +330,184 @@ elif st.session_state.page == "tools":
     st.markdown("---")
 
     # ---------------------------
-    # ALIGNMENT
+    # ALIGNMENT FUNCTIONS
+    # ---------------------------
+
+    def render_alignment(a1, a2):
+        visual = "".join(
+            "|" if x == y else " " if "-" in (x, y) else "."
+            for x, y in zip(a1, a2)
+        )
+        st.code(f"{a1}\n{visual}\n{a2}")
+
+    def smith_waterman(s1, s2):
+        match, mismatch, gap = 2, -1, -2
+        n, m = len(s1), len(s2)
+
+        score = [[0]*(m+1) for _ in range(n+1)]
+
+        max_score = 0
+        max_pos = (0, 0)
+
+        for i in range(1, n+1):
+            for j in range(1, m+1):
+
+                diag = score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch)
+                delete = score[i-1][j] + gap
+                insert = score[i][j-1] + gap
+
+                score[i][j] = max(0, diag, delete, insert)
+
+                if score[i][j] > max_score:
+                    max_score = score[i][j]
+                    max_pos = (i, j)
+
+        align1, align2 = "", ""
+        i, j = max_pos
+        matches, length = 0, 0
+
+        while i > 0 and j > 0 and score[i][j] != 0:
+
+            if score[i][j] == score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch):
+                align1 = s1[i-1] + align1
+                align2 = s2[j-1] + align2
+                if s1[i-1] == s2[j-1]:
+                    matches += 1
+                i -= 1
+                j -= 1
+
+            elif score[i][j] == score[i-1][j] + gap:
+                align1 = s1[i-1] + align1
+                align2 = "-" + align2
+                i -= 1
+
+            else:
+                align1 = "-" + align1
+                align2 = s2[j-1] + align2
+                j -= 1
+
+            length += 1
+
+        identity = (matches/length*100) if length > 0 else 0
+        return align1, align2, max_score, identity
+
+    def affine_global(s1, s2):
+        match, mismatch = 1, -1
+        gap_open, gap_extend = -5, -1
+
+        n, m = len(s1), len(s2)
+
+        M = [[0]*(m+1) for _ in range(n+1)]
+        X = [[0]*(m+1) for _ in range(n+1)]
+        Y = [[0]*(m+1) for _ in range(n+1)]
+
+        for i in range(1, n+1):
+            M[i][0] = gap_open + (i-1)*gap_extend
+            X[i][0] = M[i][0]
+
+        for j in range(1, m+1):
+            M[0][j] = gap_open + (j-1)*gap_extend
+            Y[0][j] = M[0][j]
+
+        for i in range(1, n+1):
+            for j in range(1, m+1):
+
+                X[i][j] = max(
+                    M[i-1][j] + gap_open,
+                    X[i-1][j] + gap_extend
+                )
+
+                Y[i][j] = max(
+                    M[i][j-1] + gap_open,
+                    Y[i][j-1] + gap_extend
+                )
+
+                M[i][j] = max(
+                    M[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch),
+                    X[i][j],
+                    Y[i][j]
+                )
+
+        align1, align2 = "", ""
+        i, j = n, m
+
+        while i > 0 or j > 0:
+
+            if i > 0 and j > 0 and M[i][j] == M[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch):
+                align1 = s1[i-1] + align1
+                align2 = s2[j-1] + align2
+                i -= 1
+                j -= 1
+
+            elif i > 0 and M[i][j] == X[i][j]:
+                align1 = s1[i-1] + align1
+                align2 = "-" + align2
+                i -= 1
+
+            else:
+                align1 = "-" + align1
+                align2 = s2[j-1] + align2
+                j -= 1
+
+        return align1, align2, M[n][m]
+
+    # ---------------------------
+    # ALIGNMENT UI
     # ---------------------------
 
     st.subheader("Pairwise Alignment")
 
-    s1 = st.text_area("First sequence")
-    s2 = st.text_area("Second sequence")
+    mode = st.selectbox(
+        "Alignment type",
+        ["Local (Smith-Waterman)", "Global (Affine gaps)"]
+    )
+
+    s1 = st.text_area("First sequence", key="align_s1")
+    s2 = st.text_area("Second sequence", key="align_s2")
 
     if st.button("Run Alignment"):
 
         s1 = s1.upper().replace("\n","").replace(" ","")
         s2 = s2.upper().replace("\n","").replace(" ","")
 
-        match = 1
-        mismatch = -1
-        gap = -1
+        valid = set("ATGC")
 
-        n=len(s1)
-        m=len(s2)
+        if not s1 or not s2:
+            st.warning("Please provide both sequences.")
+            st.stop()
 
-        score=[[0]*(m+1) for _ in range(n+1)]
+        if not set(s1).issubset(valid) or not set(s2).issubset(valid):
+            st.error("Sequences must contain only A, T, G, C.")
+            st.stop()
 
-        for i in range(n+1):
-            score[i][0]=i*gap
+        if mode == "Local (Smith-Waterman)":
 
-        for j in range(m+1):
-            score[0][j]=j*gap
+            a1, a2, score, identity = smith_waterman(s1, s2)
 
-        for i in range(1,n+1):
-            for j in range(1,m+1):
+            st.write(f"Max Alignment Score: {score}")
+            st.write(f"Identity: {identity:.2f}%")
 
-                diag=score[i-1][j-1]+(match if s1[i-1]==s2[j-1] else mismatch)
-                delete=score[i-1][j]+gap
-                insert=score[i][j-1]+gap
+            render_alignment(a1, a2)
 
-                score[i][j]=max(diag,delete,insert)
-
-        align1=""
-        align2=""
-
-        i=n
-        j=m
-        matches=0
-        length=0
-
-        while i>0 or j>0:
-
-            if i>0 and j>0 and score[i][j]==score[i-1][j-1]+(match if s1[i-1]==s2[j-1] else mismatch):
-
-                align1=s1[i-1]+align1
-                align2=s2[j-1]+align2
-
-                if s1[i-1]==s2[j-1]:
-                    matches+=1
-
-                i-=1
-                j-=1
-
-            elif i>0 and score[i][j]==score[i-1][j]+gap:
-
-                align1=s1[i-1]+align1
-                align2="-"+align2
-                i-=1
-
-            else:
-
-                align1="-"+align1
-                align2=s2[j-1]+align2
-                j-=1
-
-            length+=1
-
-        percent=(matches/length)*100
-
-        visual=""
-
-        for a,b in zip(align1,align2):
-
-            if a==b:
-                visual+="|"
-            elif a=="-" or b=="-":
-                visual+=" "
-            else:
-                visual+="."
-
-        mismatch=False
-
-        for a,b in zip(align1[-5:],align2[-5:]):
-            if a!=b:
-                mismatch=True
-
-        if mismatch:
-            warn="⚠ Possible 3′ primer mismatch detected"
         else:
-            warn="3′ end appears well matched"
 
-        st.write(f"Alignment Score: {score[n][m]}")
-        st.write(f"Complementarity: {percent:.2f}%")
-        st.write(warn)
+            a1, a2, score = affine_global(s1, s2)
 
-        st.code(f"{align1}\n{visual}\n{align2}")
+            matches = sum(1 for x,y in zip(a1,a2) if x==y)
+            length = len(a1)
+            identity = (matches/length*100) if length > 0 else 0
+
+            st.write(f"Alignment Score: {score}")
+            st.write(f"Identity: {identity:.2f}%")
+
+            mismatch = any(x != y for x, y in zip(a1[-5:], a2[-5:]))
+
+            if mismatch:
+                st.write("⚠ Possible 3′ primer mismatch detected")
+            else:
+                st.write("3′ end appears well matched")
+
+            render_alignment(a1, a2)
 
     st.markdown("---")
 
@@ -442,7 +517,7 @@ elif st.session_state.page == "tools":
 
     st.subheader("Primer Generator")
 
-    template = st.text_area("Template DNA")
+    template = st.text_area("Template DNA", key="primer_template")
     length = st.number_input("Primer length", value=20)
 
     if st.button("Generate Primers"):
@@ -461,24 +536,22 @@ elif st.session_state.page == "tools":
             return 2*(seq.count("A")+seq.count("T"))+4*(seq.count("G")+seq.count("C"))
 
         def gc_clamp(seq):
-            last5=seq[-5:]
-            gc_count=last5.count("G")+last5.count("C")
-            if gc_count>=2:
-                return "Good GC clamp"
-            return "Weak GC clamp"
+            last5 = seq[-5:]
+            gc_count = last5.count("G")+last5.count("C")
+            return "Good GC clamp" if gc_count >= 2 else "Weak GC clamp"
 
         def reverse_comp(seq):
             return seq.translate(comp)[::-1]
 
         def hairpin_check(seq):
-            rc=reverse_comp(seq)
+            rc = reverse_comp(seq)
             for i in range(len(seq)-4):
                 if seq[i:i+4] in rc:
                     return "Possible hairpin"
             return "No strong hairpin detected"
 
         def dimer_check(p1,p2):
-            rc2=reverse_comp(p2)
+            rc2 = reverse_comp(p2)
             for i in range(len(p1)-4):
                 if p1[i:i+4] in rc2:
                     return "Possible primer dimer"
@@ -500,11 +573,9 @@ elif st.session_state.page == "tools":
 
         st.write("Dimer Check")
         st.write(dimer_check(forward,reverse))
-
-
-# ============================================
-# 10. FOOTER
-# ============================================
+#=====================================================
+        # FOOTER 
+#=====================================================
 
 st.markdown("---")
 st.caption("🧬 RNMolBioTools • Molecular Biology Utilities")

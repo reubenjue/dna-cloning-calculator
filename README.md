@@ -1,7 +1,15 @@
-![DNA Cloning Calculator Interface](preview.png)
+# 🧬 DNA Cloning Calculator
 # RNMolBioTools
-
 RNMolBioTools is a web-based molecular biology toolkit built using Streamlit. It provides a set of interactive tools for DNA cloning, sequence analysis, primer design, and related molecular biology computations. This toolkit is designed for researchers, students, and bioinformatics enthusiasts to quickly perform calculations, visualize DNA features, and analyze sequences in an easy-to-use web interface.
+---
+## 🔗 Live Application
+Click the badge below to run the calculator live in your browser:
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://dna-cloning-calculator-npbb5qqzmfe4nfqvuw5fdj.streamlit.app/)
+
+👉 [Launch DNA Cloning Calculator](https://dna-cloning-calculator-npbb5qqzmfe4nfqvuw5fdj.streamlit.app/)
+
+![DNA Cloning Calculator Interface](preview.png)
 
 ---
 

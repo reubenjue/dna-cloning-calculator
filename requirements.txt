@@ -1,3 +1,5 @@
-streamlit
-matplotlib>=3.7
-numpy>=1.24
+streamlit>=1.30
+pandas
+# Optional: uncomment to use Primer3's full thermodynamic model for hairpin/dimer ΔG
+# (the app falls back to its built-in nearest-neighbour approximation without it)
+# primer3-py>=2.0

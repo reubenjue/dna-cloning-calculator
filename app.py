@@ -1513,6 +1513,6 @@ with tabs[5]:
                 except ValueError as e:
                     st.error(str(e))
 
-st.markdown("---")
+st.markdown(animated_header(), unsafe_allow_html=True)
 st.caption("🧬 RNMolBioTools • Molecular Biology Utilities · V9 — calculations are planning "
            "aids; verify critical values experimentally.")

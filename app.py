@@ -975,19 +975,94 @@ MOLECULES = ["dsDNA", "ssDNA", "RNA"]
 LEN_UNIT = {"dsDNA": "bp", "ssDNA": "nt", "RNA": "nt"}
 
 # ----------------------------------------------------------------------------
-# Header
+# Animated header (pure CSS — Streamlit strips JavaScript, CSS keyframes render)
 # ----------------------------------------------------------------------------
 
-st.markdown(
+def animated_header(n_pairs: int = 26, period: float = 3.2, width: int = 190,
+                    height: int = 64, amp: int = 18, turns: float = 2.0) -> str:
     """
-<div style="background:linear-gradient(90deg,#2C3E50,#4CA1AF);padding:16px;border-radius:8px;
-display:flex;align-items:center;gap:12px;color:white;box-shadow:0 2px 6px rgba(0,0,0,.2);">
-<div style="font-size:34px;">🧬</div>
-<div><div style="font-size:20px;font-weight:600;">DNA Cloning Calculator</div>
-<div style="font-size:13px;opacity:.9;">RNMolBioTools · V9</div></div></div>
-""",
-    unsafe_allow_html=True,
-)
+    Rotating DNA double helix drawn with CSS only.
+
+    Each base pair is two dots at a fixed x that oscillate vertically; the phase
+    is offset along the strand, so the column reads as a rotating 3-D helix.
+    Depth is conveyed by scale and opacity, and the rung between the two strands
+    collapses as that pair turns edge-on. Tune: `period` = seconds per turn,
+    `n_pairs` = number of base pairs, `turns` = turns visible across the width.
+    """
+    step = width / (n_pairs - 1)
+    bases, rungs = [], []
+    for i in range(n_pairs):
+        delay = -period * (i / n_pairs) * turns
+        x = i * step
+        bases.append(
+            f'<span class="b b1" style="left:{x:.1f}px;animation-delay:{delay:.3f}s"></span>'
+            f'<span class="b b2" style="left:{x:.1f}px;animation-delay:{delay:.3f}s"></span>')
+        rungs.append(
+            f'<span class="r" style="left:{x:.1f}px;animation-delay:{delay:.3f}s"></span>')
+
+    return f"""
+<style>
+.rn-head {{
+  background:linear-gradient(90deg,#1b2a38,#2C3E50 45%,#4CA1AF);
+  padding:14px 20px;border-radius:10px;display:flex;align-items:center;
+  gap:22px;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.25);overflow:hidden;
+}}
+.rn-helix {{ position:relative;width:{width}px;height:{height}px;flex:0 0 auto; }}
+.rn-helix .b, .rn-helix .r {{
+  position:absolute;top:50%;will-change:transform,opacity;
+  animation-duration:{period}s;animation-timing-function:linear;
+  animation-iteration-count:infinite;
+}}
+.rn-helix .b {{ width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%; }}
+.rn-helix .b1 {{ background:#7FE7D9; animation-name:rn-strand-a; }}
+.rn-helix .b2 {{ background:#F6C177; animation-name:rn-strand-b; }}
+.rn-helix .r {{
+  width:2px;height:{2 * amp}px;margin:-{amp}px 0 0 -1px;border-radius:1px;
+  background:rgba(255,255,255,.55);animation-name:rn-rung;
+}}
+@keyframes rn-strand-a {{
+  0%   {{ transform:translateY({amp}px)  scale(1.25); opacity:1;   z-index:3; }}
+  25%  {{ transform:translateY(0)        scale(1.00); opacity:.85; }}
+  50%  {{ transform:translateY(-{amp}px) scale(.62);  opacity:.45; z-index:1; }}
+  75%  {{ transform:translateY(0)        scale(1.00); opacity:.85; }}
+  100% {{ transform:translateY({amp}px)  scale(1.25); opacity:1;   z-index:3; }}
+}}
+@keyframes rn-strand-b {{
+  0%   {{ transform:translateY(-{amp}px) scale(.62);  opacity:.45; z-index:1; }}
+  25%  {{ transform:translateY(0)        scale(1.00); opacity:.85; }}
+  50%  {{ transform:translateY({amp}px)  scale(1.25); opacity:1;   z-index:3; }}
+  75%  {{ transform:translateY(0)        scale(1.00); opacity:.85; }}
+  100% {{ transform:translateY(-{amp}px) scale(.62);  opacity:.45; z-index:1; }}
+}}
+@keyframes rn-rung {{
+  0%   {{ transform:scaleY(1);   opacity:.50; }}
+  25%  {{ transform:scaleY(.04); opacity:.12; }}
+  50%  {{ transform:scaleY(1);   opacity:.50; }}
+  75%  {{ transform:scaleY(.04); opacity:.12; }}
+  100% {{ transform:scaleY(1);   opacity:.50; }}
+}}
+.rn-title {{ font-size:22px;font-weight:600;letter-spacing:.2px;line-height:1.2; }}
+.rn-sub {{ font-size:13px;opacity:.85;margin-top:2px; }}
+.rn-sub .dot {{ opacity:.5;margin:0 6px; }}
+@media (prefers-reduced-motion: reduce) {{
+  .rn-helix .b, .rn-helix .r {{ animation:none; }}
+  .rn-helix .b1 {{ transform:translateY({amp}px); }}
+  .rn-helix .b2 {{ transform:translateY(-{amp}px); }}
+}}
+@media (max-width: 640px) {{ .rn-helix {{ display:none; }} }}
+</style>
+<div class="rn-head">
+  <div class="rn-helix">{''.join(rungs)}{''.join(bases)}</div>
+  <div>
+    <div class="rn-title">DNA Cloning Calculator</div>
+    <div class="rn-sub">RNMolBioTools<span class="dot">•</span>V9<span class="dot">•</span>
+    molecular biology utilities</div>
+  </div>
+</div>
+"""
+
+
+st.markdown(animated_header(), unsafe_allow_html=True)
 st.write("")
 
 # ----------------------------------------------------------------------------
@@ -1514,6 +1589,5 @@ with tabs[5]:
                     st.error(str(e))
 
 st.markdown("---")
-st.markdown(animated_header(), unsafe_allow_html=True)
 st.caption("🧬 RNMolBioTools • Molecular Biology Utilities · V9 — calculations are planning "
            "aids; verify critical values experimentally.")

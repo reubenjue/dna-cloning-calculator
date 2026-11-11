@@ -1,623 +1,585 @@
-# ============================================
-# 1. IMPORT LIBRARIES
-# ============================================
+# ============================================================================
+# RNMolBioTools — DNA Cloning Calculator, V9 (Streamlit)
+# All scientific logic lives in molbio_core.py (same folder).
+# ============================================================================
 
+import pandas as pd
 import streamlit as st
 
+import molbio_core as mb
 
-# ============================================
-# 2. PAGE CONFIG
-# ============================================
+st.set_page_config(page_title="DNA Cloning Calculator | RNMolBioTools",
+                   page_icon="🧬", layout="wide")
 
-st.set_page_config(
-    page_title="DNA Cloning Calculator | RNMolBioTools",
-    page_icon="🧬",
-    layout="wide"
-)
+# ----------------------------------------------------------------------------
+# Helpers
+# ----------------------------------------------------------------------------
 
 
-# ============================================
-# 3. HEADER
-# ============================================
+def sci(x, digits=3):
+    """Readable number: plain for 0.01–99,999, scientific otherwise."""
+    if x is None:
+        return "–"
+    if x == 0:
+        return "0"
+    ax = abs(x)
+    if 0.01 <= ax < 1e5:
+        return f"{x:,.{digits}g}" if ax < 1 else f"{x:,.{max(digits - 1, 1)}f}".rstrip("0").rstrip(".")
+    return f"{x:.{digits}e}"
+
+
+def show_problems(problems):
+    for p in problems:
+        st.error(p)
+    return bool(problems)
+
+
+def wrap(seq, width=60):
+    return "\n".join(seq[i:i + width] for i in range(0, len(seq), width))
+
+
+MOLECULES = ["dsDNA", "ssDNA", "RNA"]
+LEN_UNIT = {"dsDNA": "bp", "ssDNA": "nt", "RNA": "nt"}
+
+# ----------------------------------------------------------------------------
+# Header
+# ----------------------------------------------------------------------------
 
 st.markdown(
-"""
-<div style="
-background: linear-gradient(90deg,#2C3E50,#4CA1AF);
-padding:16px;
-border-radius:8px;
-display:flex;
-align-items:center;
-gap:12px;
-color:white;
-box-shadow:0px 2px 6px rgba(0,0,0,0.2);
-">
-
+    """
+<div style="background:linear-gradient(90deg,#2C3E50,#4CA1AF);padding:16px;border-radius:8px;
+display:flex;align-items:center;gap:12px;color:white;box-shadow:0 2px 6px rgba(0,0,0,.2);">
 <div style="font-size:34px;">🧬</div>
-
-<div>
-<div style="font-size:20px;font-weight:600;">
-DNA Cloning Calculator
-</div>
-
-<div style="font-size:13px;opacity:0.9;">
-RNMolBioTools
-</div>
-</div>
-
-</div>
+<div><div style="font-size:20px;font-weight:600;">DNA Cloning Calculator</div>
+<div style="font-size:13px;opacity:.9;">RNMolBioTools · V9</div></div></div>
 """,
-unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
-
 st.write("")
 
-
-# ============================================
-# 4. NAVIGATION
-# ============================================
-
-if "page" not in st.session_state:
-    st.session_state.page = "cloning"
-
-col1, col2, col3, col4, col5 = st.columns(5)
-
-with col1:
-    if st.button("🧬 DNA Cloning", use_container_width=True):
-        st.session_state.page = "cloning"
-
-with col2:
-    if st.button("🔢 Copy Number", use_container_width=True):
-        st.session_state.page = "copy"
-
-with col3:
-    if st.button("⚖ Mass Converter", use_container_width=True):
-        st.session_state.page = "conversion"
-
-with col4:
-    if st.button("🧾 Sequence Mass", use_container_width=True):
-        st.session_state.page = "sequence"
-
-with col5:
-    if st.button("🧪 Sequence Tools", use_container_width=True):
-        st.session_state.page = "tools"
-
-st.markdown("---")
-
-
-# ============================================
-# 5. DNA CLONING CALCULATOR
-# ============================================
-
-if st.session_state.page == "cloning":
-
-    st.markdown("### DNA Cloning Calculator")
-
-    vector_kb = st.number_input("Vector DNA size (kb)", min_value=0.0)
-    insert_kb = st.number_input("Insert DNA size (kb)", min_value=0.0)
-    ratio = st.text_input("Vector : Insert ratio; adjust accordingly", "1:4")
-    total_ng = st.number_input("Total DNA (ng); adjust accordingly", value=100.0)
-
-    if st.button("Calculate Cloning Mix"):
-
-        r_vec, r_ins = ratio.split(":")
-        r_vec, r_ins = float(r_vec), float(r_ins)
-
-        vector_bp = vector_kb * 1000
-        insert_bp = insert_kb * 1000
-
-        ratio_val = r_ins / r_vec
-
-        vector_ng = total_ng / (1 + ratio_val * (insert_bp / vector_bp))
-        insert_ng = total_ng - vector_ng
-
-        vector_pmol = (vector_ng * 1000) / (vector_bp * 650)
-        insert_pmol = (insert_ng * 1000) / (insert_bp * 650)
-
-        st.subheader("Results")
-
-        st.write(f"Vector: {vector_ng:.2f} ng ({vector_pmol:.4f} pmol)")
-        st.write(f"Insert: {insert_ng:.2f} ng ({insert_pmol:.4f} pmol)")
-
-    st.info("""
-Typical ligation ratios
-
-Sticky end ligations: **1 : 3**  
-Blunt end ligations: **1 : 4 – 6**  
-Large fragment ligations: **1 : 1**
-""")
-
-    st.caption("ⓘ Calculation assumptions")
-
-    with st.expander("How the ligation calculation works"):
-
-        st.markdown("""
-DNA ligation efficiency depends on **molar ratios** rather than mass.
-
-Average molecular weight of dsDNA:
-
-**650–660 g/mol per bp**
-
-Conversion used:
-
-pmol = (ng × 1000) / (bp × 650)
-""")
-
-
-# ============================================
-# 6. DNA COPY NUMBER CALCULATOR
-# ============================================
-
-elif st.session_state.page == "copy":
-
-    st.markdown("### dsDNA Copy Number Calculator")
-
-    dna_kb = st.number_input("DNA length (kb)", min_value=0.0)
-    dna_ng = st.number_input("DNA amount (ng)", min_value=0.0)
-
-    if st.button("Calculate Copy Number"):
-
-        dna_bp = dna_kb * 1000
-        molar_mass = dna_bp * 650
-
-        moles = (dna_ng * 1e-9) / molar_mass
-        pmol = moles * 1e12
-        copies = moles * 6.022e23
-
-        st.subheader("Results")
-
-        st.write(f"Molar Mass: {molar_mass:.2e} g/mol")
-        st.write(f"Moles: {moles:.2e} mol")
-        st.write(f"pmol: {pmol:.4f}")
-        st.write(f"DNA Copies: {copies:.2e}")
-
-    st.caption("ⓘ Calculation assumptions")
-
-    with st.expander("How DNA copy number is calculated"):
-
-        st.markdown("""
-Average molecular weight:
-
-**650 g/mol per base pair**
-
-Copies are calculated using **Avogadro's number**:
-
-6.022 × 10²³ molecules/mol
-""")
-
-
-# ============================================
-# 7. DNA / RNA MASS CONVERSION
-# ============================================
-
-elif st.session_state.page == "conversion":
-
-    st.markdown("### DNA/RNA Mass Unit Converter")
-
-    na_type = st.selectbox("Molecule type", ["dsDNA", "ssDNA", "RNA"])
-
-    for key in ["g","mg","ug","ng","pg"]:
-        if key not in st.session_state:
-            st.session_state[key] = 0.0
-
-    def convert_from_g():
-        g = st.session_state.g
-        st.session_state.mg = g * 1e3
-        st.session_state.ug = g * 1e6
-        st.session_state.ng = g * 1e9
-        st.session_state.pg = g * 1e12
-
-    def convert_from_mg():
-        mg = st.session_state.mg
-        st.session_state.g = mg / 1e3
-        st.session_state.ug = mg * 1e3
-        st.session_state.ng = mg * 1e6
-        st.session_state.pg = mg * 1e9
-
-    def convert_from_ug():
-        ug = st.session_state.ug
-        st.session_state.g = ug / 1e6
-        st.session_state.mg = ug / 1e3
-        st.session_state.ng = ug * 1e3
-        st.session_state.pg = ug * 1e6
-
-    def convert_from_ng():
-        ng = st.session_state.ng
-        st.session_state.g = ng / 1e9
-        st.session_state.mg = ng / 1e6
-        st.session_state.ug = ng / 1e3
-        st.session_state.pg = ng * 1e3
-
-    def convert_from_pg():
-        pg = st.session_state.pg
-        st.session_state.g = pg / 1e12
-        st.session_state.mg = pg / 1e9
-        st.session_state.ug = pg / 1e6
-        st.session_state.ng = pg / 1e3
-
-    col1, col2, col3, col4, col5 = st.columns(5)
-
-    col1.number_input("g", key="g", on_change=convert_from_g)
-    col2.number_input("mg", key="mg", on_change=convert_from_mg)
-    col3.number_input("µg", key="ug", on_change=convert_from_ug)
-    col4.number_input("ng", key="ng", on_change=convert_from_ng)
-    col5.number_input("pg", key="pg", on_change=convert_from_pg)
-
-    st.write("Enter a value in any field to convert automatically.")
-
-
-# ============================================
-# 8. DNA SEQUENCE MASS CALCULATOR
-# ============================================
-
-elif st.session_state.page == "sequence":
-
-    st.markdown("### DNA Sequence Mass Calculator")
-
-    seq_type = st.selectbox("Sequence Type", ["dsDNA", "ssDNA"])
-
-    sequence = st.text_area("Paste DNA sequence (A, T, G, C only)", height=150)
-
-    mass_ng = st.number_input("Optional: DNA amount (ng)", min_value=0.0, value=0.0)
-
-    if sequence:
-
-        seq = sequence.upper().replace("\n","").replace(" ","")
-
-        valid_bases = set("ATGC")
-
-        if not set(seq).issubset(valid_bases):
-
-            st.error("Invalid input: sequence must contain only A, T, G, C bases.")
-
+# ----------------------------------------------------------------------------
+# Sidebar: global conventions and PCR conditions
+# ----------------------------------------------------------------------------
+
+with st.sidebar:
+    st.header("Settings")
+    mw_method = st.radio(
+        "Molecular-weight convention", mb.MW_METHODS, index=0,
+        help="Exact: dsDNA = 617.96·bp + 36.04; ssDNA = 308.97·nt + 18.02; "
+             "RNA = 321.47·nt + 18.02 g/mol (NEB/QIAGEN). Legacy: 650 / 330 / 340 g/mol "
+             "per bp or nt (sodium-salt rule of thumb, ~5 % higher).")
+    st.subheader("PCR conditions")
+    st.caption("Used for Tm and ΔG in the primer tools.")
+    na = st.number_input("Monovalent cations Na⁺/K⁺ (mM)", 0.0, 1000.0, 50.0, 5.0)
+    mg = st.number_input("Mg²⁺ (mM)", 0.0, 20.0, 1.5, 0.25)
+    dntp = st.number_input("Total dNTP (mM)", 0.0, 10.0, 0.8, 0.1,
+                           help="Sum of all four dNTPs (0.2 mM each = 0.8 mM). dNTPs chelate Mg²⁺.")
+    primer_nm = st.number_input("Primer concentration (nM, each)", 1.0, 5000.0, 250.0, 50.0)
+    cond = mb.PCRConditions(na, mg, dntp, primer_nm)
+    st.caption(f"Na⁺-equivalent: {cond.na_equivalent_M() * 1000:.0f} mM · "
+               f"ΔG engine: {mb.thermo_backend()}")
+
+tabs = st.tabs(["🧬 Ligation & Assembly", "🔢 Copy Number & Standards",
+                "⚖ Mass ↔ Moles", "🧾 Sequence Properties",
+                "🧪 Sequence Tools", "🎯 Primers"])
+
+# ============================================================================
+# 1. LIGATION & ASSEMBLY
+# ============================================================================
+
+with tabs[0]:
+    st.markdown("### Ligation & Assembly Calculator")
+    rxn = st.radio("Reaction type",
+                   ["T4 DNA ligation (sticky / blunt ends)",
+                    "Seamless assembly (Gibson / NEBuilder HiFi / In-Fusion)"],
+                   horizontal=True)
+    is_asm = rxn.startswith("Seamless")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        vector_bp = st.number_input("Linearised vector length (bp)", min_value=1, value=4000, step=100)
+        n_ins = st.number_input("Number of inserts", min_value=1, max_value=6 if is_asm else 3,
+                                value=1, step=1)
+        inserts = []
+        for k in range(int(n_ins)):
+            a, b = st.columns(2)
+            bp = a.number_input(f"Insert {k + 1} length (bp)", min_value=1, value=1000,
+                                step=50, key=f"ins_bp_{k}")
+            r = b.number_input(f"Insert {k + 1} : vector molar ratio", min_value=0.1,
+                               value=2.0 if is_asm else 3.0, step=0.5, key=f"ins_r_{k}",
+                               help="Moles of this insert per mole of vector (3 = 3-fold excess).")
+            inserts.append((int(bp), float(r)))
+    with c2:
+        mode_labels = {"Fix vector mass (ng) — recommended": "vector_ng",
+                       "Fix total DNA mass (ng)": "total_ng",
+                       "Fix total DNA amount (pmol)": "total_pmol"}
+        default_mode = 2 if is_asm else 0
+        mode_lbl = st.selectbox("How to set the amount", list(mode_labels), index=default_mode)
+        mode = mode_labels[mode_lbl]
+        default_amt = {"vector_ng": 50.0, "total_ng": 100.0, "total_pmol": 0.1}[mode]
+        amount = st.number_input(
+            {"vector_ng": "Vector (ng)", "total_ng": "Total DNA (ng)",
+             "total_pmol": "Total DNA (pmol)"}[mode],
+            min_value=0.0001, value=default_amt, step=0.01 if mode == "total_pmol" else 5.0,
+            format="%.4f" if mode == "total_pmol" else "%.1f", key=f"amt_{mode}")
+        rxn_ul = st.number_input("Reaction volume (µL)", min_value=1.0, value=20.0, step=1.0)
+        other_ul = st.number_input(
+            "Volume of other components (µL)", min_value=0.0,
+            value=10.0 if is_asm else 3.0, step=0.5,
+            help="Buffer + enzyme. T4: 2 µL 10× buffer + 1 µL ligase. "
+                 "HiFi/Gibson 2× master mix: half the reaction volume.")
+        use_stocks = st.checkbox("I know my stock concentrations → give pipetting volumes")
+        stocks = None
+        if use_stocks:
+            stocks = [st.number_input("Vector stock (ng/µL)", min_value=0.001, value=50.0,
+                                      key="stock_v")]
+            for k in range(int(n_ins)):
+                stocks.append(st.number_input(f"Insert {k + 1} stock (ng/µL)", min_value=0.001,
+                                              value=20.0, key=f"stock_{k}"))
+
+    try:
+        res = mb.ligation_mix(int(vector_bp), inserts, mode, float(amount), stocks=stocks,
+                              reaction_ul=rxn_ul, other_ul=other_ul)
+        rows = []
+        for c in res.components:
+            rows.append({"Component": c.name, "Length (bp)": c.bp,
+                         "Molar parts": c.ratio, "Mass (ng)": round(c.ng, 2),
+                         "Amount (fmol)": round(c.pmol * 1000, 2),
+                         "Volume (µL)": None if c.ul is None else round(c.ul, 2)})
+        st.subheader("Reaction mix")
+        st.dataframe(pd.DataFrame(rows), hide_index=True)
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Total DNA", f"{res.total_ng:.1f} ng")
+        m2.metric("Total DNA", f"{res.total_pmol:.4f} pmol")
+        if res.dna_volume_ul is not None:
+            water = rxn_ul - other_ul - res.dna_volume_ul
+            m3.metric("Water to add", f"{max(water, 0):.2f} µL")
+        for w in res.warnings:
+            st.warning(w)
+        if is_asm:
+            n_frag = 1 + int(n_ins)
+            lo, hi = (0.03, 0.2) if n_frag <= 3 else (0.2, 0.5)
+            if not lo <= res.total_pmol <= hi:
+                st.info(f"For {n_frag} fragments, NEBuilder HiFi recommends "
+                        f"{lo}–{hi} pmol total DNA (check your kit's manual).")
         else:
+            if not 0.01 <= res.components[0].pmol <= 0.1:
+                st.info("Typical T4 ligations use about 0.01–0.1 pmol vector "
+                        "(e.g. 50 ng of a 4 kb vector ≈ 0.02 pmol).")
+    except ValueError as e:
+        st.error(str(e))
 
-            length = len(seq)
+    with st.expander("Calculation and guidance"):
+        st.markdown(r"""
+**Moles from mass:** pmol = ng × 1000 / MW, with MW(dsDNA, linear) = 617.96·bp + 36.04 g/mol.
 
-            if seq_type == "dsDNA":
-                mw_per_bp = 650
+**Fix vector mass (recommended):** insert ng = ratio × vector pmol × MW(insert) / 1000.
+This keeps the vector — and therefore the number of clonable ends — constant, which is
+what controls ligation efficiency.
+
+**Fix total mass:** vector ng = total / (1 + Σ ratioᵢ · MWᵢ / MW(vector)).
+
+**Starting points (always optimise empirically):**
+- T4 ligation: 1:3 vector:insert; try 1:1 to 1:10. Very short inserts (< ~200 bp)
+  usually need higher excess; blunt-end ligations are less efficient — increase ligase
+  or add PEG rather than only raising the ratio.
+- NEBuilder HiFi / Gibson: 2–3 fragments 0.03–0.2 pmol total, vector:insert 1:2;
+  4–6 fragments 0.2–0.5 pmol, 1:1; inserts < 200 bp 1:5.
+- Keep total DNA modest (≈ 1–10 ng/µL); high concentrations favour concatemers.
+""")
+
+# ============================================================================
+# 2. COPY NUMBER & qPCR STANDARDS
+# ============================================================================
+
+with tabs[1]:
+    st.markdown("### Copy Number Calculator")
+    kind = st.radio("Template", ["Plasmid / PCR product / transcript", "Genomic DNA"],
+                    horizontal=True)
+    if kind.startswith("Plasmid"):
+        c1, c2 = st.columns(2)
+        with c1:
+            mol = st.selectbox("Molecule", MOLECULES, key="cn_mol")
+            length = st.number_input(f"Length ({LEN_UNIT[mol]})", min_value=1, value=4000,
+                                     step=100, key="cn_len")
+            circ = mol == "dsDNA" and st.checkbox("Circular (uncut plasmid)", key="cn_circ")
+        with c2:
+            how = st.radio("Input", ["Concentration (ng/µL)", "Mass (ng)"], key="cn_how")
+            val = st.number_input(how, min_value=0.0, value=10.0, key="cn_val")
+        try:
+            mw = mb.mw_from_length(int(length), mol, circ, mw_method)
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Molecular weight", f"{sci(mw)} g/mol")
+            if how.startswith("Concentration"):
+                m2.metric("Copies / µL", sci(mb.copies_from_ng(val, mw)))
+                m3.metric("Molarity", f"{sci(mb.ng_per_ul_to_nM(val, mw))} nM")
+                stock_copies = mb.copies_from_ng(val, mw)
             else:
-                mw_per_bp = 330
-
-            mol_weight = length * mw_per_bp
-
-            st.subheader("Sequence Properties")
-
-            st.write(f"Length: **{length} bp**")
-            st.write(f"Molecular weight: **{mol_weight:.2e} g/mol**")
-
-            pmol_per_ng = (1e-9 / mol_weight) * 1e12
-
-            st.write(f"1 ng corresponds to **{pmol_per_ng:.4f} pmol**")
-
-            if mass_ng > 0:
-
-                moles = (mass_ng * 1e-9) / mol_weight
-                pmol = moles * 1e12
-
-                st.subheader("Mass Conversion")
-
-                st.write(f"{mass_ng} ng = **{pmol:.4f} pmol**")
-
-
-# ============================================
-# 9. SEQUENCE TOOLS
-# ============================================
-
-elif st.session_state.page == "tools":
-
-    st.markdown("### Sequence Analysis Tools")
-
-    # ---------------------------
-    # COMPLEMENT
-    # ---------------------------
-
-    seq = st.text_area("Paste DNA sequence", key="comp_seq")
-
-    if seq:
-        seq = seq.upper().replace("\n","").replace(" ","")
-        comp_map = str.maketrans("ATGC","TACG")
-
-        complement = seq.translate(comp_map)
-        rev = complement[::-1]
-
-        st.subheader("Complement")
-        st.code(complement)
-
-        st.subheader("Reverse Complement")
-        st.code(rev)
+                m2.metric("Copies", sci(mb.copies_from_ng(val, mw)))
+                m3.metric("Amount", f"{sci(mb.ng_to_pmol(val, mw))} pmol")
+                stock_copies = None
+        except ValueError as e:
+            st.error(str(e))
+            stock_copies = None
+    else:
+        c1, c2 = st.columns(2)
+        genome_mb = c1.number_input("Haploid genome size (Mb)", min_value=0.001, value=3100.0,
+                                    help="Human ≈ 3,100 Mb; mouse ≈ 2,700 Mb; E. coli ≈ 4.6 Mb.")
+        gdna = c2.number_input("Genomic DNA (ng)", min_value=0.0, value=10.0)
+        pg_per = mb.haploid_genome_mass_pg(genome_mb * 1e6)
+        m1, m2 = st.columns(2)
+        m1.metric("Mass per haploid genome", f"{sci(pg_per)} pg")
+        m2.metric("Haploid genome copies", sci(gdna * 1000 / pg_per))
+        st.caption("A single-copy gene is present once per haploid genome; a diploid cell "
+                   "contains two haploid genome equivalents.")
+        stock_copies = None
 
     st.markdown("---")
+    st.markdown("#### Serial dilution planner (qPCR standard curve)")
+    d1, d2, d3, d4, d5 = st.columns(5)
+    stock = d1.number_input("Stock (copies/µL)", min_value=1.0,
+                            value=float(stock_copies) if stock_copies else 1e10, format="%.3e")
+    top = d2.number_input("Top standard (copies/µL)", min_value=1e-3, value=1e7, format="%.3e")
+    fold = d3.number_input("Fold dilution", min_value=1.5, value=10.0, step=1.0)
+    npts = d4.number_input("Points", min_value=1, max_value=12, value=6, step=1)
+    vol = d5.number_input("Volume kept per tube (µL)", min_value=1.0, value=50.0)
+    try:
+        rows, warns = mb.serial_dilution(stock, top, fold, int(npts), vol)
+        df = pd.DataFrame(rows)
+        df["Concentration"] = df["Concentration"].map(lambda x: f"{x:.2e} copies/µL")
+        for col in ("Transfer (µL)", "Diluent (µL)", "Total made (µL)"):
+            df[col] = df[col].map(lambda x: round(x, 3))
+        st.dataframe(df, hide_index=True)
+        for w in warns:
+            st.warning(w)
+        st.caption("Use carrier (e.g. 10 ng/µL yeast tRNA or salmon sperm DNA) in the diluent "
+                   "for low-copy standards to limit adsorption losses.")
+    except ValueError as e:
+        st.error(str(e))
 
-    # ---------------------------
-    # ALIGNMENT FUNCTIONS
-    # ---------------------------
+# ============================================================================
+# 3. MASS ↔ MOLES CONVERTER
+# ============================================================================
 
-    #def render_alignment(a1, a2):
-       # visual = "".join(
-        #    "|" if x == y else " " if "-" in (x, y) else "."
-         #   for x, y in zip(a1, a2)
-        #)
-        #st.code(f"{a1}\n{visual}\n{a2}")
+with tabs[2]:
+    st.markdown("### Mass ↔ Moles ↔ Molarity")
+    st.caption("Mass-unit conversion alone does not depend on the molecule; converting "
+               "to moles does — that is what molecule type and length are used for.")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        mol = st.selectbox("Molecule", MOLECULES, key="cv_mol")
+        length = st.number_input(f"Length ({LEN_UNIT[mol]})", min_value=1, value=1000,
+                                 step=100, key="cv_len")
+    with c2:
+        qty = st.number_input("Value", min_value=0.0, value=100.0, format="%.6g", key="cv_val")
+        unit = st.selectbox("Unit", list(mb.MASS_UNITS) + list(mb.MOLE_UNITS), index=3)
+    with c3:
+        conc = st.number_input("Optional: concentration (ng/µL)", min_value=0.0, value=0.0)
+    try:
+        mw = mb.mw_from_length(int(length), mol, False, mw_method)
+        if unit in mb.MASS_UNITS:
+            grams = qty * mb.MASS_UNITS[unit]
+            moles = grams / mw
+        else:
+            moles = qty * mb.MOLE_UNITS[unit]
+            grams = moles * mw
+        st.write(f"MW = **{sci(mw)} g/mol** · copies = **{sci(moles * mb.AVOGADRO)}**")
+        cA, cB = st.columns(2)
+        cA.dataframe(pd.DataFrame({"Mass": [f"{sci(grams / f)} {u}" for u, f in mb.MASS_UNITS.items()]}),
+                     hide_index=True)
+        cB.dataframe(pd.DataFrame({"Amount": [f"{sci(moles / f)} {u}" for u, f in mb.MOLE_UNITS.items()]}),
+                     hide_index=True)
+        if conc > 0:
+            nm = mb.ng_per_ul_to_nM(conc, mw)
+            st.success(f"{conc:g} ng/µL = {sci(nm)} nM = {sci(nm / 1000)} µM "
+                       f"= {sci(mb.copies_from_ng(conc, mw))} copies/µL")
+    except ValueError as e:
+        st.error(str(e))
 
-    #def to_clustal(name1, name2, seq1, seq2):
-     #   lines = ["CLUSTAL W alignment\n"]
-      #  block_size = 60
+# ============================================================================
+# 4. SEQUENCE PROPERTIES
+# ============================================================================
 
-       # for i in range(0, len(seq1), block_size):
-        #    chunk1 = seq1[i:i+block_size]
-         #   chunk2 = seq2[i:i+block_size]
-#
- #           lines.append(f"{name1:<10} {chunk1}")
-  #          lines.append(f"{name2:<10} {chunk2}")
-#
- #           consensus = ""
-  #          for a, b in zip(chunk1, chunk2):
-   #             consensus += "*" if a == b else " "
-#
- #           lines.append(f"{'':<10} {consensus}\n")
-#
- #       return "\n".join(lines)
-#
- #   # 🔬 Local alignment with full-sequence embedding
-  #  def smith_waterman(s1, s2):
-#
- #       match, mismatch, gap = 2, -1, -2
-  #      n, m = len(s1), len(s2)
-#
- #       score = [[0]*(m+1) for _ in range(n+1)]
-#
- #       max_score = 0
-  #      max_pos = (0, 0)
-#
- #       for i in range(1, n+1):
-  #          for j in range(1, m+1):
-#
- #               diag = score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch)
-  #              delete = score[i-1][j] + gap
-   #             insert = score[i][j-1] + gap
-#
- #               score[i][j] = max(0, diag, delete, insert)
-#
- #               if score[i][j] > max_score:
-  #                  max_score = score[i][j]
-   #                 max_pos = (i, j)
-#
- #       align1, align2 = "", ""
-  #      i, j = max_pos
-#
- #       matches, length = 0, 0
-  #      end_i, end_j = i, j
-#
- #       while i > 0 and j > 0 and score[i][j] != 0:
-#
- #           if score[i][j] == score[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch):
-  #              align1 = s1[i-1] + align1
-   #             align2 = s2[j-1] + align2
-    #            if s1[i-1] == s2[j-1]:
-     #               matches += 1
-      #          i -= 1
-       #         j -= 1
-#
- #           elif score[i][j] == score[i-1][j] + gap:
-  #              align1 = s1[i-1] + align1
-   #             align2 = "-" + align2
-    #            i -= 1
-#
- #           else:
-  #              align1 = "-" + align1
-   #             align2 = s2[j-1] + align2
-    #            j -= 1
-#
- #           length += 1
-#
- #       start_i, start_j = i, j
-#
- #       # Embed back into full sequences
-  #      full1 = s1[:start_i] + align1 + s1[end_i:]
-   #     full2 = s2[:start_j] + align2 + s2[end_j:]
-#
- #       identity = (matches/length*100) if length > 0 else 0
-#
- #       return full1, full2, max_score, identity
-#
-    # Global affine gap alignment
- #   def affine_global(s1, s2):
-#
- #       match, mismatch = 1, -1
-  #      gap_open, gap_extend = -5, -1
-#
- #       n, m = len(s1), len(s2)
-#
- #       M = [[0]*(m+1) for _ in range(n+1)]
-  #      X = [[0]*(m+1) for _ in range(n+1)]
-   #     Y = [[0]*(m+1) for _ in range(n+1)]
-#
- #       for i in range(1, n+1):
-  #          M[i][0] = gap_open + (i-1)*gap_extend
-   #         X[i][0] = M[i][0]
-#
- #       for j in range(1, m+1):
-  #          M[0][j] = gap_open + (j-1)*gap_extend
-   #         Y[0][j] = M[0][j]
-#
- #       for i in range(1, n+1):
-  #          for j in range(1, m+1):
-#
- #               X[i][j] = max(M[i-1][j] + gap_open, X[i-1][j] + gap_extend)
-  #              Y[i][j] = max(M[i][j-1] + gap_open, Y[i][j-1] + gap_extend)
-#
- #               M[i][j] = max(
-  #                  M[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch),
-   #                 X[i][j],
-    #                Y[i][j]
-     #           )
-#
- #       align1, align2 = "", ""
-  #      i, j = n, m
-#
- #       while i > 0 or j > 0:
-#
- #           if i > 0 and j > 0 and M[i][j] == M[i-1][j-1] + (match if s1[i-1]==s2[j-1] else mismatch):
-  #              align1 = s1[i-1] + align1
-   #             align2 = s2[j-1] + align2
-    #            i -= 1
-     #           j -= 1
-#
- #           elif i > 0 and M[i][j] == X[i][j]:
-  #              align1 = s1[i-1] + align1
-   #             align2 = "-" + align2
-    #            i -= 1
-#
- #           else:
-  #              align1 = "-" + align1
-   #             align2 = s2[j-1] + align2
-    #            j -= 1
-#
- #       return align1, align2, M[n][m]
-#
- #   # ---------------------------
-  #  # ALIGNMENT UI
-   # # ---------------------------
-#
- #   st.subheader("Pairwise Alignment")
-#
- #   mode = st.selectbox(
-  #      "Alignment type",
-   #     ["Local (Smith-Waterman)", "Global (Affine gaps)"]
-    #)
-#
- #   s1 = st.text_area("First sequence", key="align_s1")
-  #  s2 = st.text_area("Second sequence", key="align_s2")
-#
- #   if st.button("Run Alignment"):
-#
- #       s1 = s1.upper().replace("\n","").replace(" ","")
-  #      s2 = s2.upper().replace("\n","").replace(" ","")
-#
- #       valid = set("ATGC")
-#
- #       if not s1 or not s2:
-  #          st.warning("Please provide both sequences.")
-   #         st.stop()
-#
- #       if not set(s1).issubset(valid) or not set(s2).issubset(valid):
-  #          st.error("Sequences must contain only A, T, G, C.")
-   ##         st.stop()
-#
- #       if mode == "Local (Smith-Waterman)":
-#
- #           a1, a2, score, identity = smith_waterman(s1, s2)
-#
- #           st.write(f"Max Alignment Score: {score}")
-  #          st.write(f"Identity: {identity:.2f}%")
-#
- #       else:
-#
- #           a1, a2, score = affine_global(s1, s2)
-#
- #           matches = sum(1 for x,y in zip(a1,a2) if x==y)
-  #          identity = (matches/len(a1)*100) if len(a1)>0 else 0
-#
- #           st.write(f"Alignment Score: {score}")
-  #          st.write(f"Identity: {identity:.2f}%")
-#
- #           mismatch = any(x != y for x, y in zip(a1[-5:], a2[-5:]))
-#
- #           if mismatch:
-  #              st.write("⚠ Possible 3′ primer mismatch detected")
-   #         else:
-    #            st.write("3′ end appears well matched")
-#
- #       render_alignment(a1, a2)
-#
- #       # ---------------------------
-  #      # DOWNLOAD OPTIONS
-   #     # ---------------------------
-#
- #       clustal_text = to_clustal("Seq1", "Seq2", a1, a2)
-#
- #       st.download_button(
-  #          "Download Clustal (.aln)",
-   #         clustal_text,
-    #        file_name="alignment.aln"
-     #   )
-#
- #       fasta_text = f">Seq1\n{a1}\n>Seq2\n{a2}"
-#
- #       st.download_button(
-  #          "Download FASTA",
-   #         fasta_text,
-    #        file_name="alignment.fasta"
-     #   )
-#
- #   st.markdown("---")
+with tabs[3]:
+    st.markdown("### Sequence Properties & Exact Molecular Weight")
+    raw = st.text_area("Paste a sequence (plain or FASTA; numbers and spaces are ignored)",
+                       height=150, key="sp_seq")
+    seq = mb.clean_sequence(raw)
+    if seq:
+        molecule, problems = mb.validate(seq, allow_ambiguous=False)
+        if not show_problems(problems):
+            c1, c2 = st.columns(2)
+            if molecule == "RNA":
+                stype = "RNA"
+                c1.info("U detected → treated as RNA.")
+                rna_end = c2.radio("5′ end", ["triphosphate (in-vitro transcript)",
+                                             "OH (synthetic oligo)"])
+                mw_exact = mb.mw_rna_exact(seq, "triphosphate" if rna_end.startswith("tri") else "OH")
+            else:
+                stype = c1.radio("Treat as", ["dsDNA", "ssDNA"], horizontal=True)
+                if stype == "dsDNA":
+                    topo = c2.radio("Form", ["Linear, 5′-OH (e.g. PCR product)",
+                                             "Linear, 5′-phosphate (e.g. restriction fragment)",
+                                             "Circular"])
+                    mw_exact = mb.mw_dsdna_exact(seq, five_prime_phosphate="phosphate" in topo,
+                                                 circular=topo == "Circular")
+                else:
+                    p5 = c2.checkbox("5′-phosphate")
+                    mw_exact = mb.mw_ssdna_exact(seq, p5)
+            L = len(seq)
+            unit = LEN_UNIT[stype]
+            mw_avg = mb.mw_from_length(L, stype, False, mw_method)
+            comp = {b: seq.count(b) for b in ("ACGU" if molecule == "RNA" else "ACGT")}
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Length", f"{L:,} {unit}")
+            m2.metric("GC content", f"{mb.gc_percent(seq):.1f} %")
+            m3.metric("Exact MW (from sequence)", f"{sci(mw_exact, 5)} g/mol")
+            m4.metric("Length-based MW", f"{sci(mw_avg, 5)} g/mol")
+            st.write("Composition: " + " · ".join(f"{b} {n}" for b, n in comp.items()))
+            st.write(f"1 µg = **{sci(mb.ng_to_pmol(1000, mw_exact))} pmol**  ·  "
+                     f"1 pmol = **{sci(mb.pmol_to_ng(1, mw_exact))} ng**")
+            mass = st.number_input("Optional: mass (ng)", min_value=0.0, value=0.0, key="sp_mass")
+            if mass > 0:
+                st.success(f"{mass:g} ng = {sci(mb.ng_to_pmol(mass, mw_exact))} pmol "
+                           f"= {sci(mb.copies_from_ng(mass, mw_exact))} molecules")
+            with st.expander("How the exact MW is calculated"):
+                st.markdown("""
+Single strand: Σ residue masses − 61.96 (5′-OH, 3′-OH), residues
+dA 313.21, dC 289.18, dG 329.21, dT 304.20; + 79.98 for a 5′-phosphate.
+dsDNA = top strand + reverse-complement strand. Circular DNA has no free ends.
+RNA: residues A 329.21, C 305.18, G 345.21, U 306.17; + 159.0 for a 5′-triphosphate
+(in-vitro transcript) or − 61.96 for a 5′-OH oligo.
+""")
 
-    # ---------------------------
-    # PRIMER GENERATOR
-    # ---------------------------
+# ============================================================================
+# 5. SEQUENCE TOOLS
+# ============================================================================
 
-    st.subheader("Primer Generator")
+with tabs[4]:
+    st.markdown("### Complement / Reverse Complement")
+    raw = st.text_area("Sequence (IUPAC codes allowed)", key="rc_seq")
+    seq = mb.clean_sequence(raw)
+    if seq:
+        molecule, problems = mb.validate(seq, allow_ambiguous=True)
+        if not show_problems(problems):
+            rna = molecule == "RNA"
+            st.markdown("**Reverse complement** (5′→3′ — use this for primers/oligos)")
+            st.code(wrap(mb.reverse_complement(seq, rna)))
+            st.markdown("**Complement** (written 3′→5′, aligned under the input)")
+            st.code(wrap(mb.complement(seq, rna)))
 
-    template = st.text_area("Template DNA", key="primer_template")
-    length = st.number_input("Primer length", value=20)
+    st.markdown("---")
+    st.markdown("### Pairwise Alignment")
+    amode = st.radio("Mode", ["Primer binding on a template (both strands)",
+                              "Compare two sequences (global)"], horizontal=True)
+    s1 = mb.clean_sequence(st.text_area("Primer (5′→3′)" if amode.startswith("Primer")
+                                        else "Sequence 1", key="al1"))
+    s2 = mb.clean_sequence(st.text_area("Template" if amode.startswith("Primer")
+                                        else "Sequence 2", key="al2"))
+    if amode.startswith("Compare"):
+        vs_rc = st.checkbox("Align against the reverse complement of sequence 2 "
+                            "(tests antiparallel complementarity)")
+    st.caption("Scoring: match +5, mismatch −4, gap open −10, gap extend −0.5 "
+               "(EMBOSS needle DNAfull defaults). Affine-gap Needleman–Wunsch/Gotoh.")
+    if st.button("Run alignment"):
+        probs = []
+        for s, name in ((s1, "First sequence"), (s2, "Second sequence")):
+            _, p = mb.validate(s)
+            probs += [f"{name}: {x}" for x in p]
+        if not show_problems(probs):
+            try:
+                if amode.startswith("Primer"):
+                    sites = mb.primer_binding(s1, s2)
+                    best = sites[0]
+                    ident = 100 * best.aln.matches / len(s1)
+                    st.write(f"Best site: **{'forward (matches top strand, anneals to bottom)' if best.strand == '+' else 'reverse (matches bottom strand, anneals to top)'}**, "
+                             f"template positions **{best.start}–{best.end}**")
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("Primer identity to site", f"{ident:.1f} %")
+                    m2.metric("Mismatches + gaps", best.mismatches_total)
+                    m3.metric("Errors in 3′-terminal 5 nt", best.mismatches_3p5)
+                    if best.terminal_mismatch:
+                        st.error("The 3′-terminal base is mismatched — extension will be "
+                                 "strongly inhibited (exploited in allele-specific PCR).")
+                    elif best.mismatches_3p5:
+                        st.warning("Mismatch(es) within the last 5 bases at the 3′ end "
+                                   "can reduce or abolish extension.")
+                    elif best.mismatches_total:
+                        st.info("Mismatches only toward the 5′ end — usually tolerated, "
+                                "but they lower the effective Tm.")
+                    else:
+                        st.success("Perfect match.")
+                    st.code(f"Primer   5' {best.aln.a} 3'\n            {best.aln.match_line()}\n"
+                            f"Template 5' {best.aln.b} 3'  ({'top' if best.strand == '+' else 'bottom'} strand)")
+                    other = sites[1]
+                    st.caption(f"Best site on the other strand: score {other.aln.score:.1f} "
+                               f"(vs {best.aln.score:.1f}), {other.mismatches_total} mismatches/gaps.")
+                else:
+                    b = mb.reverse_complement(s2) if vs_rc else s2
+                    aln = mb.align(s1, b)
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Score", f"{aln.score:.1f}")
+                    m2.metric("Identity (of alignment length)",
+                              f"{100 * aln.matches / aln.length:.1f} %")
+                    m3.metric("Identity (of shorter sequence)",
+                              f"{100 * aln.matches / min(len(s1), len(s2)):.1f} %")
+                    m4.metric("Gaps / mismatches", f"{aln.gaps} / {aln.mismatches}")
+                    if vs_rc:
+                        st.caption("Sequence 2 was reverse-complemented, so identity here = "
+                                   "antiparallel complementarity between the two inputs.")
+                    blocks = []
+                    for i in range(0, aln.length, 60):
+                        blocks.append(f"{aln.a[i:i + 60]}\n{aln.match_line()[i:i + 60]}\n{aln.b[i:i + 60]}")
+                    st.code("\n\n".join(blocks))
+            except ValueError as e:
+                st.error(f"{e} For long sequences use NCBI BLAST or EMBOSS needle.")
 
-    if st.button("Generate Primers"):
+# ============================================================================
+# 6. PRIMERS
+# ============================================================================
 
-        template = template.upper().replace("\n","").replace(" ","")
 
-        comp = str.maketrans("ATGC","TACG")
+def primer_table(rep: mb.PrimerReport, label: str):
+    st.markdown(f"**{label}** ({rep.length} nt annealing"
+                f"{f' + {len(rep.tail)} nt 5′ tail' if rep.tail else ''})")
+    shown = (rep.tail.lower() + rep.anneal) if rep.tail else rep.anneal
+    st.code(f"5'-{shown}-3'")
+    data = {
+        "Tm (nearest-neighbour)": f"{rep.tm:.1f} °C",
+        "Tm full length incl. tail": f"{rep.tm_full:.1f} °C" if rep.tm_full else "–",
+        "GC content": f"{rep.gc:.0f} %",
+        "G/C in last 5 bases": f"{rep.gc_last5}/5" + (" (ends in G/C)" if rep.terminal_gc else ""),
+        "Longest mononucleotide run": rep.homopolymer,
+        "Longest dinucleotide repeat": rep.dinuc,
+        "Hairpin ΔG (kcal/mol)": f"{rep.hairpin.dg:.1f}",
+        "Self-dimer ΔG / 3′-end (kcal/mol)": f"{rep.self_dimer.dg:.1f} / {rep.self_dimer_3p.dg:.1f}",
+        "Wallace Tm (for comparison only)": f"{mb.tm_wallace(rep.anneal):.0f} °C",
+    }
+    st.dataframe(pd.DataFrame({"Property": list(data), "Value": [str(v) for v in data.values()]}),
+                 hide_index=True)
+    if rep.warnings:
+        for w in rep.warnings:
+            st.warning(w)
+    else:
+        st.success("No design rule violations.")
 
-        forward = template[:length]
-        reverse = template[-length:].translate(comp)[::-1]
 
-        def gc(seq):
-            return (seq.count("G")+seq.count("C"))/len(seq)*100
+with tabs[5]:
+    st.caption(f"Tm: SantaLucia 1998 nearest-neighbour with salt and Mg²⁺ correction, "
+               f"conditions from the sidebar. ΔG at 37 °C via {mb.thermo_backend()}. "
+               f"Lowercase = 5′ tail (not counted in annealing Tm).")
+    ptool = st.radio("Tool", ["Design primers from a template", "Analyse existing primers"],
+                     horizontal=True)
 
-        def tm(seq):
-            return 2*(seq.count("A")+seq.count("T"))+4*(seq.count("G")+seq.count("C"))
+    if ptool.startswith("Analyse"):
+        p1 = mb.clean_sequence(st.text_area("Forward primer (5′→3′)", key="pa1"))
+        p2 = mb.clean_sequence(st.text_area("Reverse primer (5′→3′, optional)", key="pa2"))
+        if st.button("Analyse"):
+            probs = []
+            for p, nme in ((p1, "Forward"), (p2, "Reverse")):
+                if p and (set(p) - set("ACGT")):
+                    probs.append(f"{nme} primer: only A, C, G, T allowed for Tm/ΔG.")
+            if not p1:
+                probs.append("Enter at least one primer.")
+            if not show_problems(probs):
+                reps = [mb.analyse_primer(p1, cond)]
+                cols = st.columns(2 if p2 else 1)
+                with cols[0]:
+                    primer_table(reps[0], "Forward primer")
+                if p2:
+                    reps.append(mb.analyse_primer(p2, cond))
+                    with cols[1]:
+                        primer_table(reps[1], "Reverse primer")
+                    het_any, het_3p = mb.dimer(p1, p2, cond)
+                    st.markdown("**Pair**")
+                    st.write(f"Tm difference: **{abs(reps[0].tm - reps[1].tm):.1f} °C** · "
+                             f"hetero-dimer ΔG **{het_any.dg:.1f}** kcal/mol · "
+                             f"3′-end dimer ΔG **{het_3p.dg:.1f}** kcal/mol")
+                    if het_3p.dg < mb.DIMER_3P_LIMIT or het_any.dg < mb.DIMER_STRONG:
+                        st.warning("Primer-dimer risk.")
+                st.info("Annealing temperature: for Taq-type enzymes start ~3–5 °C below the "
+                        "lower primer Tm (or run a gradient). High-fidelity enzymes "
+                        "(Q5, Phusion) use buffer-specific rules — check the supplier's calculator.")
 
-        def gc_clamp(seq):
-            last5 = seq[-5:]
-            gc_count = last5.count("G")+last5.count("C")
-            return "Good GC clamp" if gc_count >= 2 else "Weak GC clamp"
+    else:
+        tpl = mb.clean_sequence(st.text_area("Template (5′→3′ top strand, plain or FASTA)",
+                                             height=150, key="pd_tpl"))
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            dmode = st.radio("Primer placement",
+                             ["Anchored at the ends (amplify exactly this sequence, e.g. ORF)",
+                              "Anywhere within flanking regions"])
+            region = st.number_input("Flanking region (bp)", min_value=20, value=100, step=10,
+                                     disabled=dmode.startswith("Anchored"))
+        with c2:
+            target = st.number_input("Target Tm (°C)", 45.0, 75.0, 60.0, 0.5)
+            lmin, lmax = st.slider("Annealing length (nt)", 12, 40, (18, 30))
+            maxdiff = st.number_input("Max Tm difference (°C)", 0.5, 10.0, 3.0, 0.5)
+        with c3:
+            tail_kind = st.selectbox("5′ additions",
+                                     ["None", "Restriction sites", "Custom tails (e.g. Gibson overlaps)"])
+            tail_f = tail_r = ""
+            enz_f = enz_r = None
+            if tail_kind == "Restriction sites":
+                enz_f = st.selectbox("Forward-primer enzyme", list(mb.RESTRICTION_SITES), index=2)
+                enz_r = st.selectbox("Reverse-primer enzyme", list(mb.RESTRICTION_SITES), index=15)
+                leader = mb.clean_sequence(st.text_input(
+                    "Leader bases 5′ of the site", "TAAGCA",
+                    help="Most enzymes cut poorly at the very end of DNA; 4–6 extra bases "
+                         "are usually enough (see the NEB 'cleavage close to the end' chart)."))
+                tail_f = leader + mb.RESTRICTION_SITES[enz_f]
+                tail_r = leader + mb.RESTRICTION_SITES[enz_r]
+            elif tail_kind.startswith("Custom"):
+                tail_f = mb.clean_sequence(st.text_input("Forward 5′ tail", ""))
+                tail_r = mb.clean_sequence(st.text_input("Reverse 5′ tail", ""))
 
-        def reverse_comp(seq):
-            return seq.translate(comp)[::-1]
-
-        def hairpin_check(seq):
-            rc = reverse_comp(seq)
-            for i in range(len(seq)-4):
-                if seq[i:i+4] in rc:
-                    return "Possible hairpin"
-            return "No strong hairpin detected"
-
-        def dimer_check(p1,p2):
-            rc2 = reverse_comp(p2)
-            for i in range(len(p1)-4):
-                if p1[i:i+4] in rc2:
-                    return "Possible primer dimer"
-            return "No strong dimer detected"
-
-        st.write("Forward Primer")
-        st.code(forward)
-        st.write(f"GC%: {gc(forward):.1f}")
-        st.write(f"Tm: {tm(forward)} °C")
-        st.write(gc_clamp(forward))
-        st.write(hairpin_check(forward))
-
-        st.write("Reverse Primer")
-        st.code(reverse)
-        st.write(f"GC%: {gc(reverse):.1f}")
-        st.write(f"Tm: {tm(reverse)} °C")
-        st.write(gc_clamp(reverse))
-        st.write(hairpin_check(reverse))
-
-        st.write("Dimer Check")
-        st.write(dimer_check(forward,reverse))
-#=====================================================
-        # FOOTER 
-#=====================================================
+        if st.button("Design primers"):
+            probs = []
+            if not tpl:
+                probs.append("Paste a template.")
+            elif set(tpl) - set("ACGT"):
+                probs.append("Template must contain only A, C, G, T for primer design.")
+            if set(tail_f + tail_r) - set("ACGT"):
+                probs.append("Tails must contain only A, C, G, T.")
+            if not show_problems(probs):
+                try:
+                    with st.spinner("Scoring candidate primers…"):
+                        pairs = mb.design_primers(
+                            tpl, cond, target_tm=target, min_len=lmin, max_len=lmax,
+                            mode="anchored" if dmode.startswith("Anchored") else "flanking",
+                            region=int(region), max_tm_diff=maxdiff,
+                            tail_f=tail_f, tail_r=tail_r)
+                    if not pairs:
+                        st.error("No valid primer pair found — widen the length range or region.")
+                    for enz in {e for e in (enz_f, enz_r) if e}:
+                        hits = mb.find_sites(tpl, mb.RESTRICTION_SITES[enz])
+                        if hits:
+                            st.error(f"{enz} also cuts inside the template at position(s) "
+                                     f"{', '.join(map(str, hits))} — choose another enzyme.")
+                    for k, p in enumerate(pairs, 1):
+                        with st.expander(
+                                f"Pair {k}: product {p.product_bp} bp · Tm {p.fwd.tm:.1f} / "
+                                f"{p.rev.tm:.1f} °C · penalty {p.penalty:.1f}", expanded=k == 1):
+                            a, b = st.columns(2)
+                            with a:
+                                primer_table(p.fwd, f"Forward (template {p.fwd_start + 1}–"
+                                                    f"{p.fwd_start + p.fwd.length})")
+                            with b:
+                                primer_table(p.rev, f"Reverse (template {p.rev_end - p.rev.length + 1}–"
+                                                    f"{p.rev_end})")
+                            st.write(f"Hetero-dimer ΔG {p.hetero.dg:.1f} kcal/mol · "
+                                     f"3′-end {p.hetero_3p.dg:.1f} kcal/mol · "
+                                     f"Tm difference {p.tm_diff:.1f} °C")
+                            for w in p.warnings:
+                                st.warning(w)
+                    if pairs:
+                        st.info("Check specificity against the genome/plasmid background "
+                                "(e.g. NCBI Primer-BLAST) before ordering. In anchored mode the "
+                                "primer start is fixed, so GC-rich or AT-rich ends may force "
+                                "rule violations — consider flanking mode or a longer/shorter range.")
+                except ValueError as e:
+                    st.error(str(e))
 
 st.markdown("---")
-st.caption("🧬 RNMolBioTools • Molecular Biology Utilities")
+st.caption("🧬 RNMolBioTools • Molecular Biology Utilities · V9 — calculations are planning "
+           "aids; verify critical values experimentally.")

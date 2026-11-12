@@ -1,5 +1,5 @@
 # ============================================================================
-# RNMolBioTools - Molecular Biology Utilities, V9 (single-file build)
+# RNMolBioTools - DNA Cloning Calculator, V9 (single-file build)
 #
 # This file contains BOTH the scientific core and the Streamlit interface,
 # so it can be deployed on its own with no other Python file in the repo.
@@ -935,14 +935,13 @@ def primer_binding(primer: str, template: str) -> list[PrimerSite]:
 # PART B - STREAMLIT USER INTERFACE
 # ============================================================================
 
-
 import pandas as pd
 import streamlit as st
 
 # "mb." below refers to this same module (PART A above).
 mb = _sys.modules[__name__]
 
-st.set_page_config(page_title="RNMolBioTools — Molecular Biology Utilities",
+st.set_page_config(page_title="DNA Cloning Calculator | RNMolBioTools",
                    page_icon="🧬", layout="wide")
 
 # ----------------------------------------------------------------------------
@@ -976,229 +975,95 @@ MOLECULES = ["dsDNA", "ssDNA", "RNA"]
 LEN_UNIT = {"dsDNA": "bp", "ssDNA": "nt", "RNA": "nt"}
 
 # ----------------------------------------------------------------------------
-# Benchtop theme: colour tokens, CSS for Streamlit's widgets, animated header,
-# and base-coloured sequence rendering. Pure CSS - Streamlit strips JavaScript.
+# Animated header (pure CSS — Streamlit strips JavaScript, CSS keyframes render)
 # ----------------------------------------------------------------------------
 
-TOKENS = {
-    "ground": "#0F1619", "surface": "#162026", "raised": "#1B272E",
-    "line": "#223038", "line_soft": "#1A262C",
-    "teal": "#49C3AC", "teal_dim": "#2E7F72", "teal_bright": "#6FD9C4",
-    "amber": "#E8A75A",
-    "text": "#DCE6EA", "muted": "#8CA0A9", "faint": "#5E7179",
-    "A": "#4FB477", "C": "#4F9BE8", "G": "#C3D0D6", "T": "#E8695E",
-}
+def animated_header(n_pairs: int = 26, period: float = 3.2, width: int = 190,
+                    height: int = 64, amp: int = 18, turns: float = 2.0) -> str:
+    """
+    Rotating DNA double helix drawn with CSS only.
 
-
-def helix(n_pairs=30, period=3.2, height=56, amp=15, turns=2.6) -> str:
-    """Width-fluid CSS helix: x positions in %, so it fills the space it is given."""
-    t = TOKENS
+    Each base pair is two dots at a fixed x that oscillate vertically; the phase
+    is offset along the strand, so the column reads as a rotating 3-D helix.
+    Depth is conveyed by scale and opacity, and the rung between the two strands
+    collapses as that pair turns edge-on. Tune: `period` = seconds per turn,
+    `n_pairs` = number of base pairs, `turns` = turns visible across the width.
+    """
+    step = width / (n_pairs - 1)
     bases, rungs = [], []
     for i in range(n_pairs):
-        d = -period * (i / n_pairs) * turns
-        x = i / (n_pairs - 1) * 100
-        bases.append(f'<i class="b b1" style="left:{x:.2f}%;animation-delay:{d:.3f}s"></i>'
-                     f'<i class="b b2" style="left:{x:.2f}%;animation-delay:{d:.3f}s"></i>')
-        rungs.append(f'<i class="r" style="left:{x:.2f}%;animation-delay:{d:.3f}s"></i>')
+        delay = -period * (i / n_pairs) * turns
+        x = i * step
+        bases.append(
+            f'<span class="b b1" style="left:{x:.1f}px;animation-delay:{delay:.3f}s"></span>'
+            f'<span class="b b2" style="left:{x:.1f}px;animation-delay:{delay:.3f}s"></span>')
+        rungs.append(
+            f'<span class="r" style="left:{x:.1f}px;animation-delay:{delay:.3f}s"></span>')
+
     return f"""
 <style>
-.bt-helix {{ position:relative;flex:1 1 auto;min-width:120px;height:{height}px;
-             align-self:stretch;margin-top:2px; }}
-.bt-helix i {{ position:absolute;top:50%;display:block;will-change:transform,opacity;
-               animation-duration:{period}s;animation-timing-function:linear;
-               animation-iteration-count:infinite; }}
-.bt-helix .b {{ width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%; }}
-.bt-helix .b1 {{ background:{t['teal_bright']};animation-name:bt-a; }}
-.bt-helix .b2 {{ background:{t['amber']};animation-name:bt-b; }}
-.bt-helix .r {{ width:1px;height:{2*amp}px;margin:-{amp}px 0 0 0;
-                background:{t['teal_dim']};animation-name:bt-r; }}
-@keyframes bt-a {{
-  0%{{transform:translateY({amp}px) scale(1.2);opacity:.95;z-index:3}}
-  25%{{transform:translateY(0) scale(1);opacity:.8}}
-  50%{{transform:translateY(-{amp}px) scale(.6);opacity:.35;z-index:1}}
-  75%{{transform:translateY(0) scale(1);opacity:.8}}
-  100%{{transform:translateY({amp}px) scale(1.2);opacity:.95;z-index:3}} }}
-@keyframes bt-b {{
-  0%{{transform:translateY(-{amp}px) scale(.6);opacity:.35;z-index:1}}
-  25%{{transform:translateY(0) scale(1);opacity:.8}}
-  50%{{transform:translateY({amp}px) scale(1.2);opacity:.95;z-index:3}}
-  75%{{transform:translateY(0) scale(1);opacity:.8}}
-  100%{{transform:translateY(-{amp}px) scale(.6);opacity:.35;z-index:1}} }}
-@keyframes bt-r {{
-  0%{{transform:scaleY(1);opacity:.55}} 25%{{transform:scaleY(.05);opacity:.1}}
-  50%{{transform:scaleY(1);opacity:.55}} 75%{{transform:scaleY(.05);opacity:.1}}
-  100%{{transform:scaleY(1);opacity:.55}} }}
-@media (prefers-reduced-motion: reduce) {{
-  .bt-helix i {{ animation:none }}
-  .bt-helix .b1 {{ transform:translateY({amp}px) }}
-  .bt-helix .b2 {{ transform:translateY(-{amp}px) }} }}
-</style>
-<div class="bt-helix">{''.join(rungs)}{''.join(bases)}</div>"""
-
-
-def glassware() -> str:
-    """
-    Line-art bench apparatus that stands on the header's dividing rule, so the
-    rule reads as the benchtop rather than as decoration. Inline SVG: no image
-    file, no icon font, and it stays sharp at any zoom or screen density.
-    Liquids are teal, never amber — amber means "warning" everywhere in this app.
-    """
-    t = TOKENS
-    fill = f'fill="{t["teal"]}" fill-opacity=".20" stroke="none"'
-    return f"""
-<svg class="bt-bench" viewBox="0 0 150 60" width="150" height="60" aria-hidden="true"
-     fill="none" stroke="{t['faint']}" stroke-width="1.3"
-     stroke-linecap="round" stroke-linejoin="round">
-  <path d="M16.6 2.5h6.8M20 2.5v4"/>
-  <path d="M14 6.5h12v7h-12z"/>
-  <path d="M15 13.5h10l-1.5 15h-7z"/>
-  <path d="M16.2 18h7.6M16.4 22h7.2"/>
-  <path d="M26 9.5l4.4 2.4v14"/>
-  <path d="M17 28.5h6l-1.1 9h-3.8z"/>
-  <path d="M18.1 37.5h3.8l-1.2 19.5h-1.4z" {fill}/>
-  <path d="M18.1 37.5h3.8l-1.2 19.5h-1.4z"/>
-  <path d="M40.8 7h13v4.5h-13z"/>
-  <path d="M53.8 9c2.4.4 3.2 1.3 3.2 2.5"/>
-  <path d="M42.4 11.5h9.8l-3.7 40.5c-.2 2.4-2.2 2.4-2.4 0z"/>
-  <path d="M44.1 33h6.4l-1.9 19c-.2 2.4-2.2 2.4-2.4 0z" {fill}/>
-  <path d="M44.1 33h6.4"/>
-  <path d="M74.5 4h11"/>
-  <path d="M76.5 4v11L68.5 52c-.5 2.8.3 5 3.5 5h16c3.2 0 4-2.2 3.5-5L83.5 15V4"/>
-  <path d="M71.1 39h17.8l3.1 13c.5 2.8-.3 5-3.5 5H72c-3.2 0-4-2.2-3.5-5z" {fill}/>
-  <path d="M71.1 39h17.8"/>
-  <path d="M107 13.5h32"/>
-  <path d="M109 13.5v38c0 3.4 1.6 5.5 5 5.5h18c3.4 0 5-2.1 5-5.5v-38"/>
-  <path d="M137 13.5c2.3.4 3.3 1.3 4 2.6"/>
-  <path d="M109.7 31h26.6v20.5c0 3-1.3 4.8-4.3 4.8h-18c-3 0-4.3-1.8-4.3-4.8z" {fill}/>
-  <path d="M109.7 31h26.6"/>
-  <path d="M133 20h3.6M132.6 25h4"/>
-</svg>"""
-
-
-def header() -> str:
-    t = TOKENS
-    return f"""
-<style>
-.bt-head {{ display:flex;align-items:flex-end;gap:26px;padding:8px 0 0;
-            border-bottom:1px solid {t['line']};margin-bottom:6px; }}
-.bt-wordmark {{ flex:0 0 auto;padding-bottom:14px; }}
-.bt-wordmark h1 {{ font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:26px;
-  font-weight:600;letter-spacing:-.02em;color:{t['text']};margin:0;line-height:1.1; }}
-.bt-wordmark p {{ font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;
-  color:{t['muted']};margin:5px 0 0;line-height:1.45; }}
-.bt-bench {{ flex:0 0 auto;display:block;margin-bottom:-1px; }}
-.bt-helix {{ margin-bottom:14px; }}
-@media (max-width: 900px) {{ .bt-bench {{ display:none }} }}
-@media (max-width: 680px) {{ .bt-helix {{ display:none }} }}
-</style>
-<div class="bt-head">
-  <div class="bt-wordmark">
-    <h1>RNMolBioTools</h1>
-    <p>Molecular Biology Utilities</p>
-  </div>
-  {helix()}
-  {glassware()}
-</div>"""
-
-
-def app_css() -> str:
-    """Theme for Streamlit's own widgets. Targets data-testid, not generated classes."""
-    t = TOKENS
-    return f"""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-html, body, [class*="st-"], button, input, textarea, select {{
-  font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+.rn-head {{
+  background:linear-gradient(90deg,#1b2a38,#2C3E50 45%,#4CA1AF);
+  padding:14px 20px;border-radius:10px;display:flex;align-items:center;
+  gap:22px;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.25);overflow:hidden;
 }}
-[data-testid="stAppViewContainer"], [data-testid="stHeader"] {{ background:{t['ground']}; }}
-[data-testid="stSidebar"] {{ background:{t['surface']};border-right:1px solid {t['line']}; }}
-[data-testid="stAppViewContainer"] * {{ color:{t['text']}; }}
-
-/* Tabs: text labels, teal rule on the active one */
-.stTabs [data-baseweb="tab-list"] {{ gap:4px;border-bottom:1px solid {t['line']};
-  background:transparent; }}
-.stTabs [data-baseweb="tab"] {{ font-size:14.5px;font-weight:500;color:{t['muted']};
-  padding:9px 15px;background:transparent; }}
-.stTabs [aria-selected="true"] {{ color:{t['teal_bright']} !important; }}
-.stTabs [data-baseweb="tab-highlight"] {{ background:{t['teal']}; }}
-.stTabs [data-baseweb="tab-border"] {{ background:{t['line']}; }}
-
-/* Headings */
-h2, h3 {{ font-weight:600;letter-spacing:-.01em;color:{t['text']}; }}
-h3 {{ font-size:19px;margin-top:4px; }}
-
-/* Metrics: the number carries the accent, the label stays quiet */
-[data-testid="stMetric"] {{ background:{t['surface']};border:1px solid {t['line']};
-  border-radius:4px;padding:12px 14px; }}
-[data-testid="stMetricLabel"] p {{ font-size:12.5px;color:{t['muted']}; }}
-[data-testid="stMetricValue"] {{ font-family:'IBM Plex Mono',monospace;font-size:22px;
-  font-weight:500;color:{t['teal_bright']}; }}
-
-/* Inputs */
-[data-testid="stTextInput"] input, [data-testid="stNumberInput"] input,
-[data-testid="stTextArea"] textarea, [data-baseweb="select"] > div {{
-  background:{t['raised']} !important;border:1px solid {t['line']} !important;
-  color:{t['text']} !important;border-radius:3px !important; }}
-[data-testid="stTextArea"] textarea {{ font-family:'IBM Plex Mono',monospace;
-  font-size:13px;letter-spacing:.04em; }}
-input:focus, textarea:focus {{ border-color:{t['teal_dim']} !important;
-  box-shadow:0 0 0 2px rgba(73,195,172,.16) !important; }}
-label p {{ font-size:13.5px !important;color:{t['muted']} !important; }}
-
-/* Buttons */
-.stButton > button {{ background:{t['raised']};border:1px solid {t['line']};
-  color:{t['text']};border-radius:3px;font-weight:500;font-size:14px;padding:7px 18px; }}
-.stButton > button:hover {{ border-color:{t['teal_dim']};color:{t['teal_bright']};
-  background:{t['raised']}; }}
-.stButton > button:focus {{ box-shadow:0 0 0 2px rgba(73,195,172,.25) !important;
-  color:{t['teal_bright']} !important; }}
-
-/* Code and sequence output */
-[data-testid="stCode"], pre, code {{ background:{t['surface']} !important;
-  border:1px solid {t['line_soft']};border-radius:3px;
-  font-family:'IBM Plex Mono',monospace !important;font-size:12.5px;letter-spacing:.05em; }}
-
-/* Messages: amber means warning and nothing else */
-[data-testid="stAlert"] {{ border-radius:3px;border:1px solid {t['line']};
-  background:{t['surface']}; }}
-[data-testid="stAlertContentWarning"] {{ border-left:2px solid {t['amber']}; }}
-[data-testid="stAlertContentError"] {{ border-left:2px solid {t['T']}; }}
-[data-testid="stAlertContentSuccess"] {{ border-left:2px solid {t['A']}; }}
-[data-testid="stAlertContentInfo"] {{ border-left:2px solid {t['teal_dim']}; }}
-
-/* Tables */
-[data-testid="stDataFrame"] {{ border:1px solid {t['line']};border-radius:4px; }}
-[data-testid="stExpander"] {{ border:1px solid {t['line']};border-radius:4px;
-  background:{t['surface']}; }}
-hr {{ border-color:{t['line']}; }}
-
-/* Base colours, shared by sequence output */
-.sq {{ font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.09em;
-  line-height:1.65;background:{t['surface']};border:1px solid {t['line_soft']};
-  border-radius:3px;padding:10px 12px;overflow-x:auto;white-space:pre; }}
-.sq .A{{color:{t['A']}}} .sq .C{{color:{t['C']}}}
-.sq .G{{color:{t['G']}}} .sq .T{{color:{t['T']}}} .sq .U{{color:{t['T']}}}
-.sq .n{{color:{t['faint']}}}
-.sq .pos{{color:{t['faint']};user-select:none}}
-</style>"""
+.rn-helix {{ position:relative;width:{width}px;height:{height}px;flex:0 0 auto; }}
+.rn-helix .b, .rn-helix .r {{
+  position:absolute;top:50%;will-change:transform,opacity;
+  animation-duration:{period}s;animation-timing-function:linear;
+  animation-iteration-count:infinite;
+}}
+.rn-helix .b {{ width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%; }}
+.rn-helix .b1 {{ background:#7FE7D9; animation-name:rn-strand-a; }}
+.rn-helix .b2 {{ background:#F6C177; animation-name:rn-strand-b; }}
+.rn-helix .r {{
+  width:2px;height:{2 * amp}px;margin:-{amp}px 0 0 -1px;border-radius:1px;
+  background:rgba(255,255,255,.55);animation-name:rn-rung;
+}}
+@keyframes rn-strand-a {{
+  0%   {{ transform:translateY({amp}px)  scale(1.25); opacity:1;   z-index:3; }}
+  25%  {{ transform:translateY(0)        scale(1.00); opacity:.85; }}
+  50%  {{ transform:translateY(-{amp}px) scale(.62);  opacity:.45; z-index:1; }}
+  75%  {{ transform:translateY(0)        scale(1.00); opacity:.85; }}
+  100% {{ transform:translateY({amp}px)  scale(1.25); opacity:1;   z-index:3; }}
+}}
+@keyframes rn-strand-b {{
+  0%   {{ transform:translateY(-{amp}px) scale(.62);  opacity:.45; z-index:1; }}
+  25%  {{ transform:translateY(0)        scale(1.00); opacity:.85; }}
+  50%  {{ transform:translateY({amp}px)  scale(1.25); opacity:1;   z-index:3; }}
+  75%  {{ transform:translateY(0)        scale(1.00); opacity:.85; }}
+  100% {{ transform:translateY(-{amp}px) scale(.62);  opacity:.45; z-index:1; }}
+}}
+@keyframes rn-rung {{
+  0%   {{ transform:scaleY(1);   opacity:.50; }}
+  25%  {{ transform:scaleY(.04); opacity:.12; }}
+  50%  {{ transform:scaleY(1);   opacity:.50; }}
+  75%  {{ transform:scaleY(.04); opacity:.12; }}
+  100% {{ transform:scaleY(1);   opacity:.50; }}
+}}
+.rn-title {{ font-size:22px;font-weight:600;letter-spacing:.2px;line-height:1.2; }}
+.rn-sub {{ font-size:13px;opacity:.85;margin-top:2px; }}
+.rn-sub .dot {{ opacity:.5;margin:0 6px; }}
+@media (prefers-reduced-motion: reduce) {{
+  .rn-helix .b, .rn-helix .r {{ animation:none; }}
+  .rn-helix .b1 {{ transform:translateY({amp}px); }}
+  .rn-helix .b2 {{ transform:translateY(-{amp}px); }}
+}}
+@media (max-width: 640px) {{ .rn-helix {{ display:none; }} }}
+</style>
+<div class="rn-head">
+  <div class="rn-helix">{''.join(rungs)}{''.join(bases)}</div>
+  <div>
+    <div class="rn-title">DNA Cloning Calculator</div>
+    <div class="rn-sub">RNMolBioTools<span class="dot">•</span>V9<span class="dot">•</span>
+    molecular biology utilities</div>
+  </div>
+</div>
+"""
 
 
-def render_sequence(seq: str, width: int = 60, numbered: bool = True) -> str:
-    """Sequence with bases coloured by the sequencing-trace convention."""
-    out = []
-    for i in range(0, len(seq), width):
-        chunk = seq[i:i + width]
-        body = "".join(
-            f'<span class="{b}">{b}</span>' if b in "ACGTU" else f'<span class="n">{b}</span>'
-            for b in chunk)
-        pos = f'<span class="pos">{i + 1:>7} </span>' if numbered else ""
-        out.append(pos + body)
-    return '<div class="sq">' + "\n".join(out) + "</div>"
-
-
-st.markdown(app_css(), unsafe_allow_html=True)
-st.markdown(header(), unsafe_allow_html=True)
+st.markdown(animated_header(), unsafe_allow_html=True)
+st.write("")
 
 # ----------------------------------------------------------------------------
 # Sidebar: global conventions and PCR conditions
@@ -1222,9 +1087,9 @@ with st.sidebar:
     st.caption(f"Na⁺-equivalent: {cond.na_equivalent_M() * 1000:.0f} mM · "
                f"ΔG engine: {mb.thermo_backend()}")
 
-tabs = st.tabs(["Ligation & Assembly", "Copy Number & Standards",
-                "Mass \u2194 Moles", "Sequence Properties",
-                "Sequence Tools", "Primers"])
+tabs = st.tabs(["🧬 Ligation & Assembly", "🔢 Copy Number & Standards",
+                "⚖ Mass ↔ Moles", "🧾 Sequence Properties",
+                "🧪 Sequence Tools", "🎯 Primers"])
 
 # ============================================================================
 # 1. LIGATION & ASSEMBLY
@@ -1507,11 +1372,9 @@ with tabs[4]:
         if not show_problems(problems):
             rna = molecule == "RNA"
             st.markdown("**Reverse complement** (5′→3′ — use this for primers/oligos)")
-            st.markdown(render_sequence(mb.reverse_complement(seq, rna)),
-                        unsafe_allow_html=True)
+            st.code(wrap(mb.reverse_complement(seq, rna)))
             st.markdown("**Complement** (written 3′→5′, aligned under the input)")
-            st.markdown(render_sequence(mb.complement(seq, rna)),
-                        unsafe_allow_html=True)
+            st.code(wrap(mb.complement(seq, rna)))
 
     st.markdown("---")
     st.markdown("### Pairwise Alignment")
@@ -1726,5 +1589,5 @@ with tabs[5]:
                     st.error(str(e))
 
 st.markdown("---")
-st.caption("RNMolBioTools — V9. These calculations are planning aids; "
-           "verify critical values experimentally.")
+st.caption("🧬 RNMolBioTools • Molecular Biology Utilities · V9 — calculations are planning "
+           "aids; verify critical values experimentally.")
